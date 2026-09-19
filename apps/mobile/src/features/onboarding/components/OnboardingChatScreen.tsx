@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppBackground } from '../../../components/AppBackground';
 import { colors, radii, spacing } from '../../../theme/theme';
 import { useOnboardingFlow } from '../hooks/useOnboardingFlow';
 import { HOBBY_LEVEL_OPTIONS } from '../types';
@@ -26,6 +28,7 @@ export function OnboardingChatScreen(): React.JSX.Element {
   const {
     step,
     name,
+    isReturningUser,
     hobby,
     level,
     targetDateLabel,
@@ -42,16 +45,36 @@ export function OnboardingChatScreen(): React.JSX.Element {
     reset,
   } = useOnboardingFlow();
 
+  const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const levelLabel = HOBBY_LEVEL_OPTIONS.find((o) => o.value === level)?.label;
+
+  let canGoBack = false;
+  try {
+    canGoBack = router.canGoBack();
+  } catch {
+    // Navigation state isn't ready yet (e.g. very first render) — treat as no back target.
+  }
 
   useEffect(() => {
     scrollRef.current?.scrollToEnd({ animated: true });
   }, [step]);
 
   return (
+    <AppBackground>
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.brandRow}>
+        {canGoBack && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            style={styles.backButton}
+            hitSlop={8}
+          >
+            <Text style={styles.backIcon}>‹</Text>
+          </Pressable>
+        )}
         <View style={styles.brandAvatar}>
           <Text style={styles.brandAvatarText}>🔥</Text>
         </View>
@@ -76,7 +99,9 @@ export function OnboardingChatScreen(): React.JSX.Element {
             <Text style={styles.todayPill}>Today</Text>
           </View>
 
-          {name !== '' && (
+          {step === 'loading' && <ActivityIndicator color={colors.primary} />}
+
+          {name !== '' && !isReturningUser && (
             <>
               <ChatBubble>Hey! I&apos;m Flame 🔥 What should I call you?</ChatBubble>
               <UserAnswerBubble name={name}>{name}</UserAnswerBubble>
@@ -85,7 +110,11 @@ export function OnboardingChatScreen(): React.JSX.Element {
 
           {hobby !== '' && (
             <>
-              <ChatBubble>{`Nice to meet you, ${name}! What hobby do you want to learn?`}</ChatBubble>
+              <ChatBubble>
+                {isReturningUser
+                  ? `Welcome back, ${name}! What hobby do you want to learn this time?`
+                  : `Nice to meet you, ${name}! What hobby do you want to learn?`}
+              </ChatBubble>
               <UserAnswerBubble name={name}>{hobby}</UserAnswerBubble>
             </>
           )}
@@ -105,7 +134,9 @@ export function OnboardingChatScreen(): React.JSX.Element {
           )}
 
           {step === 'name' && <NameStep onSelect={selectName} />}
-          {step === 'hobby' && <HobbyStep name={name} onSelect={selectHobby} />}
+          {step === 'hobby' && (
+            <HobbyStep name={name} isReturningUser={isReturningUser} onSelect={selectHobby} />
+          )}
           {step === 'level' && <LevelStep hobby={hobby} onSelect={selectLevel} />}
           {step === 'target-date' && <TargetDateStep onSelect={selectTargetDate} />}
 
@@ -135,7 +166,10 @@ export function OnboardingChatScreen(): React.JSX.Element {
           )}
 
           {step === 'approved' && (
-            <ChatBubble>{`Your flame is lit, ${name}! Let's get started.`}</ChatBubble>
+            <View style={styles.inlineRow}>
+              <ChatBubble>{`Your flame is lit, ${name}! Let's get started.`}</ChatBubble>
+              <OptionButton label="Go to dashboard" onPress={() => router.replace('/dashboard')} />
+            </View>
           )}
 
           {step === 'error' && (
@@ -150,13 +184,13 @@ export function OnboardingChatScreen(): React.JSX.Element {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   flex: {
     flex: 1,
@@ -167,6 +201,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: colors.textPrimary,
+    fontWeight: '700',
   },
   brandAvatar: {
     width: 36,

@@ -37,3 +37,7 @@ export function approveLearningPlan(planId: string): Promise<LearningPlan> {
     method: 'POST',
   });
 }
+
+export function getActiveLearningPlans(): Promise<LearningPlan[]> {
+  return apiFetch<LearningPlan[]>('/learning-plans/active');
+}

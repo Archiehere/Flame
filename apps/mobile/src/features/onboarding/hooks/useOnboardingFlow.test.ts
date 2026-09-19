@@ -5,7 +5,7 @@ import {
   reviseLearningPlanChapters,
   updateLearningPlanChapters,
 } from '../../../services/learningPlanApi';
-import { updateUserName } from '../../../services/userApi';
+import { getCurrentUser, updateUserName } from '../../../services/userApi';
 import { useOnboardingFlow } from './useOnboardingFlow';
 
 jest.mock('../../../services/learningPlanApi');
@@ -16,6 +16,7 @@ const mockUpdateLearningPlanChapters = updateLearningPlanChapters as jest.Mock;
 const mockReviseLearningPlanChapters = reviseLearningPlanChapters as jest.Mock;
 const mockApproveLearningPlan = approveLearningPlan as jest.Mock;
 const mockUpdateUserName = updateUserName as jest.Mock;
+const mockGetCurrentUser = getCurrentUser as jest.Mock;
 
 const samplePlan = {
   _id: 'plan-1',
@@ -36,6 +37,7 @@ const samplePlan = {
 };
 
 async function advanceToSyllabus(result: { current: ReturnType<typeof useOnboardingFlow> }) {
+  await waitFor(() => expect(result.current.step).toBe('name'));
   act(() => result.current.selectName('Ada'));
   act(() => result.current.selectHobby('Guitar'));
   act(() => result.current.selectLevel('beginner'));
@@ -48,12 +50,14 @@ describe('useOnboardingFlow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUpdateUserName.mockResolvedValue({ name: 'Ada' });
+    mockGetCurrentUser.mockResolvedValue({ name: null, currentStreak: 0 });
   });
 
   it('walks through name, hobby, level, and target date before generating a plan', async () => {
     mockCreateLearningPlan.mockResolvedValue(samplePlan);
     const { result } = renderHook(() => useOnboardingFlow());
 
+    await waitFor(() => expect(result.current.step).toBe('name'));
     act(() => result.current.selectName('Ada'));
     expect(result.current.step).toBe('hobby');
     expect(mockUpdateUserName).toHaveBeenCalledWith('Ada');
@@ -74,6 +78,16 @@ describe('useOnboardingFlow', () => {
     expect(result.current.step).toBe('syllabus');
     expect(result.current.plan).toEqual(samplePlan);
     expect(result.current.targetDateLabel).toBe('3 months');
+  });
+
+  it('skips the name step and pre-fills the name for a returning user', async () => {
+    mockGetCurrentUser.mockResolvedValue({ name: 'Ada', currentStreak: 3 });
+    const { result } = renderHook(() => useOnboardingFlow());
+
+    await waitFor(() => expect(result.current.step).toBe('hobby'));
+
+    expect(result.current.name).toBe('Ada');
+    expect(result.current.isReturningUser).toBe(true);
   });
 
   it('moves to the error step when plan generation fails', async () => {

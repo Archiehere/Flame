@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../../../services/api';
 import {
   approveLearningPlan,
@@ -6,10 +6,11 @@ import {
   reviseLearningPlanChapters,
   updateLearningPlanChapters,
 } from '../../../services/learningPlanApi';
-import { updateUserName } from '../../../services/userApi';
+import { getCurrentUser, updateUserName } from '../../../services/userApi';
 import { ChapterInput, HobbyLevel, LearningPlan } from '../types';
 
 export type OnboardingStep =
+  | 'loading'
   | 'name'
   | 'hobby'
   | 'level'
@@ -22,6 +23,7 @@ export type OnboardingStep =
 interface OnboardingState {
   step: OnboardingStep;
   name: string;
+  isReturningUser: boolean;
   hobby: string;
   level: HobbyLevel | null;
   targetDateIso: string | null;
@@ -32,8 +34,9 @@ interface OnboardingState {
 }
 
 const initialState: OnboardingState = {
-  step: 'name',
+  step: 'loading',
   name: '',
+  isReturningUser: false,
   hobby: '',
   level: null,
   targetDateIso: null,
@@ -57,6 +60,36 @@ function describeError(error: unknown): string {
 
 export function useOnboardingFlow() {
   const [state, setState] = useState<OnboardingState>(initialState);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getCurrentUser()
+      .then((user) => {
+        if (cancelled) {
+          return;
+        }
+        if (user.name) {
+          setState((prev) => ({
+            ...prev,
+            name: user.name ?? '',
+            isReturningUser: true,
+            step: 'hobby',
+          }));
+        } else {
+          setState((prev) => ({ ...prev, step: 'name' }));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setState((prev) => ({ ...prev, step: 'name' }));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const selectName = useCallback((name: string) => {
     setState((prev) => ({ ...prev, name, step: 'hobby' }));

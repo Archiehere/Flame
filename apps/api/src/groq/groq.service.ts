@@ -46,7 +46,7 @@ export class GroqService {
 
   constructor(private readonly configService: ConfigService) {
     this.client = new Groq({ apiKey: this.configService.get<string>('GROQ_API_KEY') });
-    this.model = this.configService.get<string>('GROQ_MODEL') ?? 'openai/gpt-oss-120b';
+    this.model = this.configService.get<string>('GROQ_MODEL') ?? 'openai/gpt-oss-20b';
   }
 
   async generateSyllabus(input: GenerateSyllabusInput): Promise<Syllabus['chapters']> {

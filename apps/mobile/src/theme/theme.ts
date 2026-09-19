@@ -10,6 +10,10 @@ export const colors = {
   textSecondary: '#8B87A6',
   textOnPrimary: '#FFFFFF',
   danger: '#E5484D',
+  streak: '#F4A24C',
+  streakLight: '#FBE4C6',
+  cardDark: '#B9ADEF',
+  pillDark: '#231F3D',
 } as const;
 
 export const spacing = {
@@ -28,6 +32,11 @@ export const radii = {
   pill: 999,
 } as const;
 
+export const backgroundGradient = ['#D9CFF7', '#F1ECFC', '#FFFFFF'] as const;
+export const backgroundGradientPoints = {
+  start: { x: 1, y: 0 },
+  end: { x: 0, y: 1 },
+} as const;
 export const shadow = {
   shadowColor: '#3A2F73',
   shadowOpacity: 0.08,

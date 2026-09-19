@@ -36,6 +36,14 @@ export class LearningPlansService {
     });
   }
 
+  async findAllActive(deviceId: string): Promise<LearningPlanDocument[]> {
+    const user = await this.usersService.findOrCreateByDeviceId(deviceId);
+    return this.planModel
+      .find({ userId: user._id, status: LearningPlanStatus.ACTIVE })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
   async findOne(deviceId: string, planId: string): Promise<LearningPlanDocument> {
     const user = await this.usersService.findOrCreateByDeviceId(deviceId);
     const plan = await this.planModel.findOne({ _id: planId, userId: user._id }).exec();

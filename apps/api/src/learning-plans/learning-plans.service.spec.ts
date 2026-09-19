@@ -10,7 +10,11 @@ import { LearningPlan } from './schemas/learning-plan.schema.js';
 
 describe('LearningPlansService', () => {
   let service: LearningPlansService;
-  let planModel: { create: ReturnType<typeof vi.fn>; findOne: ReturnType<typeof vi.fn> };
+  let planModel: {
+    create: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
+    find: ReturnType<typeof vi.fn>;
+  };
   let usersService: { findOrCreateByDeviceId: ReturnType<typeof vi.fn> };
   let groqService: {
     generateSyllabus: ReturnType<typeof vi.fn>;
@@ -20,7 +24,7 @@ describe('LearningPlansService', () => {
   const userId = new Types.ObjectId();
 
   beforeEach(async () => {
-    planModel = { create: vi.fn(), findOne: vi.fn() };
+    planModel = { create: vi.fn(), findOne: vi.fn(), find: vi.fn() };
     usersService = { findOrCreateByDeviceId: vi.fn().mockResolvedValue({ _id: userId }) };
     groqService = {
       generateSyllabus: vi.fn().mockResolvedValue([
@@ -81,6 +85,34 @@ describe('LearningPlansService', () => {
       planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(null) });
 
       await expect(service.findOne('device-1', 'missing')).rejects.toThrow('not found');
+    });
+  });
+
+  describe('findAllActive', () => {
+    it('returns every active plan for the user', async () => {
+      const plans = [
+        { id: 'plan-2', userId, status: LearningPlanStatus.ACTIVE },
+        { id: 'plan-1', userId, status: LearningPlanStatus.ACTIVE },
+      ];
+      const sort = vi.fn().mockReturnValue({ exec: () => Promise.resolve(plans) });
+      planModel.find.mockReturnValue({ sort });
+
+      const result = await service.findAllActive('device-1');
+
+      expect(planModel.find).toHaveBeenCalledWith({
+        userId,
+        status: LearningPlanStatus.ACTIVE,
+      });
+      expect(result).toBe(plans);
+    });
+
+    it('returns an empty array when there are no active plans', async () => {
+      const sort = vi.fn().mockReturnValue({ exec: () => Promise.resolve([]) });
+      planModel.find.mockReturnValue({ sort });
+
+      const result = await service.findAllActive('device-1');
+
+      expect(result).toEqual([]);
     });
   });
 

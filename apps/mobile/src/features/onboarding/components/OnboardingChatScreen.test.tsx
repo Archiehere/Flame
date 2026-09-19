@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { updateUserName } from '../../../services/userApi';
+import { getCurrentUser, updateUserName } from '../../../services/userApi';
 import { OnboardingChatScreen } from './OnboardingChatScreen';
 
 jest.mock('../../../services/userApi');
+
+const mockGetCurrentUser = getCurrentUser as jest.Mock;
 
 describe('OnboardingChatScreen', () => {
   beforeEach(() => {
@@ -10,9 +12,10 @@ describe('OnboardingChatScreen', () => {
   });
 
   it('starts on the name step and walks through to the hobby step', async () => {
+    mockGetCurrentUser.mockResolvedValue({ name: null, currentStreak: 0 });
     render(<OnboardingChatScreen />);
 
-    expect(screen.getByText(/What should I call you/)).toBeTruthy();
+    expect(await screen.findByText(/What should I call you/)).toBeTruthy();
 
     fireEvent.changeText(screen.getByPlaceholderText('Your name'), 'Ada');
     fireEvent.press(screen.getByLabelText('Send'));
@@ -22,5 +25,13 @@ describe('OnboardingChatScreen', () => {
     fireEvent.press(screen.getByText('Guitar'));
 
     expect(await screen.findByText(/current level/)).toBeTruthy();
+  });
+
+  it('skips the name question for a returning user', async () => {
+    mockGetCurrentUser.mockResolvedValue({ name: 'Ada', currentStreak: 2 });
+    render(<OnboardingChatScreen />);
+
+    expect(await screen.findByText(/Welcome back, Ada/)).toBeTruthy();
+    expect(screen.queryByText(/What should I call you/)).toBeNull();
   });
 });

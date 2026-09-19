@@ -14,6 +14,11 @@ export class LearningPlansController {
     return this.learningPlansService.create(deviceId, dto);
   }
 
+  @Get('active')
+  findAllActive(@DeviceId() deviceId: string) {
+    return this.learningPlansService.findAllActive(deviceId);
+  }
+
   @Get(':id')
   findOne(@DeviceId() deviceId: string, @Param('id') id: string) {
     return this.learningPlansService.findOne(deviceId, id);
