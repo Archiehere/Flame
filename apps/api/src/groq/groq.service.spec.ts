@@ -1,0 +1,128 @@
+import { ConfigService } from '@nestjs/config';
+import { InternalServerErrorException } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { HobbyLevel } from '../learning-plans/enums/index.js';
+import { GroqService } from './groq.service.js';
+
+const createMock = vi.hoisted(() => vi.fn());
+
+vi.mock('groq-sdk', () => ({
+  default: vi.fn().mockImplementation(function GroqMock(this: unknown) {
+    return { chat: { completions: { create: createMock } } };
+  }),
+}));
+
+function completionWith(content: string) {
+  return { choices: [{ message: { content } }] };
+}
+
+describe('GroqService', () => {
+  let service: GroqService;
+
+  beforeEach(async () => {
+    createMock.mockReset();
+
+    const module = await Test.createTestingModule({
+      providers: [
+        GroqService,
+        {
+          provide: ConfigService,
+          useValue: { get: () => undefined },
+        },
+      ],
+    }).compile();
+
+    service = module.get(GroqService);
+  });
+
+  it('returns parsed chapters for a well-formed response', async () => {
+    createMock.mockResolvedValue(
+      completionWith(
+        JSON.stringify({
+          chapters: [
+            { title: 'Basics', description: 'Learn the basics', order: 0, timeEstimateDays: 2 },
+          ],
+        }),
+      ),
+    );
+
+    const chapters = await service.generateSyllabus({
+      hobby: 'Guitar',
+      level: HobbyLevel.BEGINNER,
+      targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+
+    expect(chapters).toHaveLength(1);
+    expect(chapters[0]?.title).toBe('Basics');
+  });
+
+  it('throws when Groq returns malformed JSON', async () => {
+    createMock.mockResolvedValue(completionWith('not json'));
+
+    await expect(
+      service.generateSyllabus({
+        hobby: 'Guitar',
+        level: HobbyLevel.BEGINNER,
+        targetDate: new Date(),
+      }),
+    ).rejects.toThrow(InternalServerErrorException);
+  });
+
+  it('throws when the JSON does not match the syllabus schema', async () => {
+    createMock.mockResolvedValue(completionWith(JSON.stringify({ chapters: [] })));
+
+    await expect(
+      service.generateSyllabus({
+        hobby: 'Guitar',
+        level: HobbyLevel.BEGINNER,
+        targetDate: new Date(),
+      }),
+    ).rejects.toThrow(InternalServerErrorException);
+  });
+
+  it('throws when Groq returns an empty message', async () => {
+    createMock.mockResolvedValue({ choices: [{ message: {} }] });
+
+    await expect(
+      service.generateSyllabus({
+        hobby: 'Guitar',
+        level: HobbyLevel.BEGINNER,
+        targetDate: new Date(),
+      }),
+    ).rejects.toThrow(InternalServerErrorException);
+  });
+
+  describe('reviseSyllabus', () => {
+    it('returns the revised chapters', async () => {
+      createMock.mockResolvedValue(
+        completionWith(
+          JSON.stringify({
+            chapters: [
+              { title: 'Basics', description: 'Learn the basics', order: 0, timeEstimateDays: 2 },
+              { title: 'Chords', description: 'Learn chords', order: 1, timeEstimateDays: 3 },
+            ],
+          }),
+        ),
+      );
+
+      const chapters = await service.reviseSyllabus({
+        currentChapters: [
+          { title: 'Basics', description: 'Learn the basics', order: 0, timeEstimateDays: 2 },
+        ],
+        instruction: 'Add a chapter about chords',
+      });
+
+      expect(chapters).toHaveLength(2);
+      expect(chapters[1]?.title).toBe('Chords');
+    });
+
+    it('throws when Groq returns malformed JSON', async () => {
+      createMock.mockResolvedValue(completionWith('not json'));
+
+      await expect(
+        service.reviseSyllabus({ currentChapters: [], instruction: 'remove everything' }),
+      ).rejects.toThrow(InternalServerErrorException);
+    });
+  });
+});

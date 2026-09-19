@@ -1,5 +1,5 @@
-import { CounterScreen } from '../src/features/counter/components/CounterScreen';
+import { OnboardingChatScreen } from '../src/features/onboarding/components/OnboardingChatScreen';
 
-export default function CounterRoute(): React.JSX.Element {
-  return <CounterScreen />;
+export default function HomeRoute(): React.JSX.Element {
+  return <OnboardingChatScreen />;
 }

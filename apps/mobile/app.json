@@ -23,10 +23,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "https://dace-2401-4900-883a-e910-346e-492b-748f-cc89.ngrok-free.app"
     }
   }
 }
