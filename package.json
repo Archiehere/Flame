@@ -1,0 +1,19 @@
+{
+  "name": "flame",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "api:dev": "pnpm --filter @flame/api start:dev",
+    "api:test": "pnpm --filter @flame/api test",
+    "api:test:e2e": "pnpm --filter @flame/api test:e2e",
+    "mobile:start": "pnpm --filter @flame/mobile start",
+    "mobile:ios": "pnpm --filter @flame/mobile ios",
+    "mobile:android": "pnpm --filter @flame/mobile android",
+    "mobile:test": "pnpm --filter @flame/mobile test",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  }
+}

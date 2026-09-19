@@ -1,0 +1,22 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+coverage/
+.env
+.env.local
+*.log
+.DS_Store
+
+# React Native
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/android/app/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/build/
+apps/mobile/.expo/
+*.jsbundle
+
+# NestJS
+apps/api/dist/
+apps/api/*.tsbuildinfo
