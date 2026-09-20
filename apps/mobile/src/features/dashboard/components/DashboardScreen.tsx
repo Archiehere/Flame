@@ -15,8 +15,8 @@ export function DashboardScreen(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <AppBackground style={styles.centered}>
-        <SafeAreaView style={styles.flex}>
+      <AppBackground>
+        <SafeAreaView style={[styles.flex, styles.centered]}>
           <ActivityIndicator color={colors.primary} />
         </SafeAreaView>
       </AppBackground>
@@ -25,8 +25,8 @@ export function DashboardScreen(): React.JSX.Element {
 
   if (errorMessage) {
     return (
-      <AppBackground style={styles.centered}>
-        <SafeAreaView style={[styles.flex, styles.errorContainer]}>
+      <AppBackground>
+        <SafeAreaView style={[styles.flex, styles.centered, styles.errorContainer]}>
           <Text style={styles.errorText}>{errorMessage}</Text>
           <PillButton label="Try again" onPress={reload} />
         </SafeAreaView>

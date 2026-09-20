@@ -8,7 +8,11 @@ import {
 } from '@expo-google-fonts/poppins';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+import { useCallback } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout(): React.JSX.Element | null {
   const [fontsLoaded] = useFonts({
@@ -19,12 +23,18 @@ export default function RootLayout(): React.JSX.Element | null {
     Poppins_800ExtraBold,
   });
 
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
     return null;
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider onLayout={onLayoutRootView}>
       <Stack screenOptions={{ headerShown: false }} />
       <StatusBar style="auto" />
     </SafeAreaProvider>
