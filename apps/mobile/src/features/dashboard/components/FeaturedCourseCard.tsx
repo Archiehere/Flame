@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, shadow, spacing } from '../../../theme/theme';
+import { colors, fonts, radii, shadow, spacing } from '../../../theme/theme';
 import { getHobbyIcon } from '../hobbyIcons';
 
 interface FeaturedCourseCardProps {
@@ -58,7 +58,7 @@ export function FeaturedCourseCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 190,
+    width: 200,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     borderWidth: 1,
@@ -72,13 +72,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 18,
+    fontFamily: fonts.medium,
     color: colors.textPrimary,
   },
   description: {
     fontSize: 12,
     color: colors.textSecondary,
+    paddingVertical: 10,
     lineHeight: 17,
     minHeight: 51,
   },

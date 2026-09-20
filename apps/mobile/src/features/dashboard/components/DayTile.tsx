@@ -17,7 +17,7 @@ const LABELS: Record<DayTileState, string> = {
   miss: 'Miss',
 };
 
-export const DAY_TILE_WIDTH = 100;
+export const DAY_TILE_WIDTH = 90;
 export const DAY_TILE_HEIGHT = 100;
 
 export function DayTile({ dayLetter, state }: DayTileProps): React.JSX.Element {
@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
     right: 14,
   },
   halo: {
-    width: 52,
-    height: 52,
+    width: 32,
+    height: 32,
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -139,24 +139,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.userBubble,
   },
   iconCircleFilled: {
-    width: 36,
-    height: 36,
+    width: 24,
+    height: 24,
     borderRadius: radii.pill,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconCircleMiss: {
-    width: 44,
-    height: 44,
+    width: 32,
+    height: 32,
     borderRadius: radii.pill,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   missRing: {
-    width: 30,
-    height: 30,
+    width: 24,
+    height: 24,
     borderRadius: radii.pill,
     borderWidth: 2,
     borderColor: colors.textOnPrimary,

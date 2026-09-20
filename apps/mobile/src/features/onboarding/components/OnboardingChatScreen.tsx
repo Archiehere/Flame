@@ -30,6 +30,7 @@ export function OnboardingChatScreen(): React.JSX.Element {
     name,
     isReturningUser,
     hobby,
+    hobbyDisplayText,
     level,
     targetDateLabel,
     plan,
@@ -86,7 +87,7 @@ export function OnboardingChatScreen(): React.JSX.Element {
 
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 16 : 0}
       >
         <ScrollView
@@ -115,7 +116,7 @@ export function OnboardingChatScreen(): React.JSX.Element {
                   ? `Welcome back, ${name}! What hobby do you want to learn this time?`
                   : `Nice to meet you, ${name}! What hobby do you want to learn?`}
               </ChatBubble>
-              <UserAnswerBubble name={name}>{hobby}</UserAnswerBubble>
+              <UserAnswerBubble name={name}>{hobbyDisplayText}</UserAnswerBubble>
             </>
           )}
 

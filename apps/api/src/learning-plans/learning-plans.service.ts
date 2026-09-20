@@ -44,6 +44,7 @@ export class LearningPlansService {
       hobby: dto.hobby,
       level: dto.level,
       targetDate,
+      notes: dto.hobbyNotes,
     });
 
     return this.planModel.create({
@@ -54,6 +55,15 @@ export class LearningPlansService {
       status: LearningPlanStatus.DRAFT,
       chapters: chapters.map((chapter) => ({ ...chapter, status: ChapterStatus.LOCKED })),
     });
+  }
+
+  /**
+   * Turns a user's free-text onboarding answer (typos, filler words, and
+   * all) into a clean hobby name plus any extra context they volunteered,
+   * so "hobby" never ends up as the raw sentence they typed.
+   */
+  async extractHobby(message: string) {
+    return this.groqService.extractHobby(message);
   }
 
   async findAllActive(deviceId: string): Promise<LearningPlanDocument[]> {
@@ -79,9 +89,13 @@ export class LearningPlansService {
    * can be reused internally (approve, completeChapter, etc.) without every
    * internal fetch counting as the user "accessing" a course.
    */
-  async getForAccess(deviceId: string, planId: string): Promise<LearningPlanDocument> {
+  async getForAccess(
+    deviceId: string,
+    planId: string,
+    localDateKey?: string,
+  ): Promise<LearningPlanDocument> {
     const plan = await this.findOne(deviceId, planId);
-    await this.usersService.recordActivity(deviceId);
+    await this.usersService.recordActivity(deviceId, localDateKey);
     return plan;
   }
 

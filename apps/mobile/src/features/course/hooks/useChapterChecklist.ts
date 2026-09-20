@@ -4,7 +4,7 @@ import {
   getChapterChecklist,
   toggleChecklistItem,
 } from '../../../services/learningPlanApi';
-import { Chapter } from '../../onboarding/types';
+import { Chapter, ChecklistItemStatus } from '../../onboarding/types';
 
 interface ChapterChecklistState {
   isLoading: boolean;
@@ -123,30 +123,35 @@ export function useChapterChecklist(planId: string, chapterId: string) {
         return;
       }
 
-      setState((prev) => {
-        if (!prev.chapter) {
-          return prev;
+      const updatedItems = previousChapter.checklistItems.map((item) => {
+        if (item._id !== itemId) {
+          return item;
         }
-        return {
-          ...prev,
-          chapter: {
-            ...prev.chapter,
-            checklistItems: prev.chapter.checklistItems.map((item) =>
-              item._id === itemId
-                ? { ...item, status: item.status === 'mastered' ? 'not_started' : 'mastered' }
-                : item,
-            ),
-          },
-        };
+        const status: ChecklistItemStatus =
+          item.status === 'mastered' ? 'not_started' : 'mastered';
+        return { ...item, status };
       });
+
+      setState((prev) =>
+        prev.chapter
+          ? { ...prev, chapter: { ...prev.chapter, checklistItems: updatedItems } }
+          : prev,
+      );
 
       try {
         await toggleChecklistItem(planId, chapterId, itemId);
       } catch {
         setState((prev) => ({ ...prev, chapter: previousChapter }));
+        return;
+      }
+
+      const allMastered =
+        updatedItems.length > 0 && updatedItems.every((item) => item.status === 'mastered');
+      if (allMastered && previousChapter.status !== 'completed') {
+        await markComplete();
       }
     },
-    [planId, chapterId, state.chapter],
+    [planId, chapterId, state.chapter, markComplete],
   );
 
   return { ...state, isCompleting, reload: load, markComplete, toggleItem };

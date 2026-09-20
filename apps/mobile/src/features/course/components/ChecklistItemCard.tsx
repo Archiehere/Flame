@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { VideoFrameIcon } from '../../../components/VideoFrameIcon';
 import { colors, radii, shadow, spacing } from '../../../theme/theme';
 import { ChecklistItem } from '../../onboarding/types';
 import { StepChecklist } from './StepChecklist';
@@ -9,12 +10,6 @@ interface ChecklistItemCardProps {
   onToggle: () => void;
 }
 
-const MODALITY_ICON: Record<ChecklistItem['modality'], string> = {
-  text: '📄',
-  video: '🎥',
-  both: '📄🎥',
-};
-
 function openYoutubeVideo(videoId: string): void {
   Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`);
 }
@@ -22,6 +17,20 @@ function openYoutubeVideo(videoId: string): void {
 export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const isMastered = item.status === 'mastered';
+  const chevronRotation = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(chevronRotation, {
+      toValue: expanded ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [expanded, chevronRotation]);
+
+  const chevronRotate = chevronRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '90deg'],
+  });
 
   return (
     <Pressable
@@ -30,17 +39,21 @@ export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): R
       style={styles.card}
     >
       <View style={styles.headerRow}>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityLabel={isMastered ? 'Mark as not done' : 'Mark as done'}
-          accessibilityState={{ checked: isMastered }}
-          onPress={onToggle}
-          hitSlop={8}
-          style={[styles.checkbox, isMastered && styles.checkboxDone]}
-        >
-          {isMastered && <Text style={styles.checkboxMark}>✓</Text>}
-        </Pressable>
-        <Text style={styles.icon}>{MODALITY_ICON[item.modality]}</Text>
+        <View style={styles.leadingColumn}>
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityLabel={isMastered ? 'Mark as not done' : 'Mark as done'}
+            accessibilityState={{ checked: isMastered }}
+            onPress={onToggle}
+            hitSlop={8}
+            style={[styles.checkbox, isMastered && styles.checkboxDone]}
+          >
+            {isMastered && <Text style={styles.checkboxMark}>✓</Text>}
+          </Pressable>
+          {item.youtubeVideoId && (
+            <VideoFrameIcon size={18} color={colors.primary} />
+          )}
+        </View>
         <View style={styles.headerText}>
           <Text style={[styles.title, isMastered && styles.titleDone]}>{item.title}</Text>
           <Text style={styles.description}>{item.description}</Text>
@@ -50,6 +63,11 @@ export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): R
             <Text style={styles.requiredText}>CORE</Text>
           </View>
         )}
+        <Animated.Text
+          style={[styles.chevron, { transform: [{ rotate: chevronRotate }] }]}
+        >
+          ›
+        </Animated.Text>
       </View>
 
       {expanded && (
@@ -99,6 +117,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
   },
+  leadingColumn: {
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   checkbox: {
     width: 24,
     height: 24,
@@ -116,9 +138,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.textOnPrimary,
-  },
-  icon: {
-    fontSize: 18,
   },
   headerText: {
     flex: 1,
@@ -149,6 +168,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: 0.5,
+  },
+  chevron: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginTop: 1,
   },
   content: {
     gap: spacing.md,

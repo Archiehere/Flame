@@ -42,7 +42,7 @@ describe('DashboardScreen', () => {
 
     render(<DashboardScreen />);
 
-    expect(await screen.findByText('Hi, ready to learn?')).toBeTruthy();
+    expect(await screen.findByText('Hi, Ready to learn?')).toBeTruthy();
     expect(screen.getByText('Ada')).toBeTruthy();
     expect(screen.getByText('Learning Guitar')).toBeTruthy();
   });

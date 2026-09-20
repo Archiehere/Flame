@@ -226,4 +226,42 @@ describe('GroqService', () => {
       );
     });
   });
+
+  describe('extractHobby', () => {
+    it('returns the cleaned hobby name with no notes when none were given', async () => {
+      createMock.mockResolvedValue(completionWith(JSON.stringify({ hobby: 'Skating' })));
+
+      const result = await service.extractHobby("Lets go with skating");
+
+      expect(result).toEqual({ hobby: 'Skating' });
+    });
+
+    it('returns extra context as notes when the user volunteered some', async () => {
+      createMock.mockResolvedValue(
+        completionWith(
+          JSON.stringify({
+            hobby: 'Skateboarding',
+            notes: 'Wants skateboarding specifically, not rollerblading',
+          }),
+        ),
+      );
+
+      const result = await service.extractHobby(
+        'I want to learn skateboarding, not rollerblading',
+      );
+
+      expect(result).toEqual({
+        hobby: 'Skateboarding',
+        notes: 'Wants skateboarding specifically, not rollerblading',
+      });
+    });
+
+    it('throws when Groq returns malformed JSON', async () => {
+      createMock.mockResolvedValue(completionWith('not json'));
+
+      await expect(service.extractHobby('skating')).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+  });
 });

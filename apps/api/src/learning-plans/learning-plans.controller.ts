@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { DeviceId } from '../common/decorators/device-id.decorator.js';
+import { LocalDate } from '../common/decorators/local-date.decorator.js';
 import { CreateLearningPlanDto } from './dto/create-learning-plan.dto.js';
+import { ExtractHobbyDto } from './dto/extract-hobby.dto.js';
 import { ReviseChaptersDto } from './dto/revise-chapters.dto.js';
 import { UpdateChaptersDto } from './dto/update-chapters.dto.js';
 import { LearningPlansService } from './learning-plans.service.js';
@@ -14,14 +16,23 @@ export class LearningPlansController {
     return this.learningPlansService.create(deviceId, dto);
   }
 
+  @Post('extract-hobby')
+  extractHobby(@Body() dto: ExtractHobbyDto) {
+    return this.learningPlansService.extractHobby(dto.message);
+  }
+
   @Get('active')
   findAllActive(@DeviceId() deviceId: string) {
     return this.learningPlansService.findAllActive(deviceId);
   }
 
   @Get(':id')
-  findOne(@DeviceId() deviceId: string, @Param('id') id: string) {
-    return this.learningPlansService.getForAccess(deviceId, id);
+  findOne(
+    @DeviceId() deviceId: string,
+    @Param('id') id: string,
+    @LocalDate() localDate?: string,
+  ) {
+    return this.learningPlansService.getForAccess(deviceId, id, localDate);
   }
 
   @Patch(':id/chapters')

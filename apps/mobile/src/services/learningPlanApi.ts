@@ -5,10 +5,23 @@ export function createLearningPlan(input: {
   hobby: string;
   level: HobbyLevel;
   targetDate: string;
+  hobbyNotes?: string;
 }): Promise<LearningPlan> {
   return apiFetch<LearningPlan>('/learning-plans', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export interface HobbyExtraction {
+  hobby: string;
+  notes?: string;
+}
+
+export function extractHobby(message: string): Promise<HobbyExtraction> {
+  return apiFetch<HobbyExtraction>('/learning-plans/extract-hobby', {
+    method: 'POST',
+    body: JSON.stringify({ message }),
   });
 }
 

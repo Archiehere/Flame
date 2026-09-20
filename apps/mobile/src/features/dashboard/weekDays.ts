@@ -6,7 +6,7 @@ export interface WeekDay {
   delta: string | null;
 }
 
-const SUNDAY_FIRST_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const SUNDAY_FIRST_LETTERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
  * Builds a rolling window of `count` days ending today, from the real

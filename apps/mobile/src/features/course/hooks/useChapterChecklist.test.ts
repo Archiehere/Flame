@@ -37,6 +37,16 @@ const plan = {
           status: 'not_started' as const,
           youtubeVideoId: 'abc123',
         },
+        {
+          _id: 'item-2',
+          title: 'Chord theory',
+          description: 'Why chords work',
+          modality: 'text' as const,
+          required: false,
+          order: 1,
+          status: 'not_started' as const,
+          textContent: 'A chord is...',
+        },
       ],
     },
     {
@@ -71,7 +81,7 @@ describe('useChapterChecklist', () => {
     expect(mockGetChapterChecklist).toHaveBeenCalledWith('plan-1', 'chapter-1');
     expect(result.current.isGenerating).toBe(false);
     expect(result.current.chapter?.title).toBe('Basics');
-    expect(result.current.chapter?.checklistItems).toHaveLength(1);
+    expect(result.current.chapter?.checklistItems).toHaveLength(2);
     expect(result.current.nextChapterId).toBe('chapter-2');
     expect(result.current.errorMessage).toBeNull();
   });
@@ -94,7 +104,7 @@ describe('useChapterChecklist', () => {
 
     expect(mockGetChapterChecklist).toHaveBeenCalledTimes(2);
     expect(result.current.isGenerating).toBe(false);
-    expect(result.current.chapter?.checklistItems).toHaveLength(1);
+    expect(result.current.chapter?.checklistItems).toHaveLength(2);
 
     jest.useRealTimers();
   });
@@ -177,6 +187,60 @@ describe('useChapterChecklist', () => {
       });
 
       expect(result.current.chapter?.checklistItems[0]?.status).toBe('not_started');
+    });
+
+    it('automatically completes the chapter once every item is mastered', async () => {
+      const oneItemLeftPlan = {
+        ...plan,
+        chapters: [
+          {
+            ...plan.chapters[0],
+            checklistItems: [
+              { ...plan.chapters[0].checklistItems[0], status: 'mastered' as const },
+              plan.chapters[0].checklistItems[1],
+            ],
+          },
+          plan.chapters[1],
+        ],
+      };
+      const completedPlan = {
+        ...plan,
+        chapters: [
+          { ...plan.chapters[0], status: 'completed' as const },
+          { ...plan.chapters[1], status: 'current' as const },
+        ],
+      };
+      mockGetChapterChecklist
+        .mockResolvedValueOnce({ plan: oneItemLeftPlan, generating: false })
+        .mockResolvedValueOnce({ plan: completedPlan, generating: false });
+      mockToggleChecklistItem.mockResolvedValue(oneItemLeftPlan);
+      mockCompleteChapter.mockResolvedValue(completedPlan);
+
+      const { result } = renderHook(() => useChapterChecklist('plan-1', 'chapter-1'));
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await result.current.toggleItem('item-2');
+      });
+
+      expect(mockCompleteChapter).toHaveBeenCalledWith('plan-1', 'chapter-1');
+      expect(result.current.chapter?.status).toBe('completed');
+    });
+
+    it('does not auto-complete while some items are still not mastered', async () => {
+      mockGetChapterChecklist.mockResolvedValue({ plan, generating: false });
+      mockToggleChecklistItem.mockResolvedValue(plan);
+
+      const { result } = renderHook(() => useChapterChecklist('plan-1', 'chapter-1'));
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await result.current.toggleItem('item-1');
+      });
+
+      expect(mockCompleteChapter).not.toHaveBeenCalled();
     });
   });
 });

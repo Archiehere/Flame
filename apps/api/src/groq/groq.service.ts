@@ -4,12 +4,14 @@ import Groq from 'groq-sdk';
 import { ZodType } from 'zod';
 import { HobbyLevel } from '../learning-plans/enums/index.js';
 import { ChecklistItemGen, checklistSchema } from './checklist.schema.js';
+import { HobbyExtraction, hobbyExtractionSchema } from './hobby-extraction.schema.js';
 import { Syllabus, syllabusSchema } from './syllabus.schema.js';
 
 export interface GenerateSyllabusInput {
   hobby: string;
   level: HobbyLevel;
   targetDate: Date;
+  notes?: string;
 }
 
 export interface ReviseSyllabusInput {
@@ -66,6 +68,16 @@ Rules you must always follow:
 - "order" starts at 0 and increases by 1 per item.
 - Do not include markdown, comments, or any text outside the JSON object.`;
 
+const HOBBY_EXTRACTION_SYSTEM_PROMPT = `You extract a clean hobby name from a user's free-text message in a hobby-learning app's onboarding chat. Users often answer in full sentences and make spelling mistakes.
+
+Rules you must always follow:
+- Correct obvious spelling/typing mistakes.
+- Return the hobby as a short, properly capitalized noun phrase (e.g. "Skating", "Watercolor Painting", "Guitar") — never the user's full sentence.
+- If the message includes extra context beyond just naming the hobby — a specific style, equipment, goal, or constraint (e.g. "I want to learn skateboarding, not rollerblading" or "focus on jazz chords, I already know basic guitar") — capture that briefly in "notes". Omit "notes" entirely if the message is just the hobby name with no extra detail.
+- Respond with strict JSON only, matching this exact shape and nothing else:
+{"hobby":"string","notes":"string (omit if no extra context was given)"}
+- Do not include markdown, comments, or any text outside the JSON object.`;
+
 @Injectable()
 export class GroqService {
   private readonly client: Groq;
@@ -80,6 +92,20 @@ export class GroqService {
     const userPrompt = this.buildUserPrompt(input);
     const raw = await this.requestJson(SYSTEM_PROMPT, userPrompt);
     return this.parseAndValidate(raw, syllabusSchema).chapters;
+  }
+
+  /**
+   * Cleans up the user's free-text onboarding answer into a proper hobby
+   * name (fixing typos, stripping filler like "let's go with") and pulls
+   * out any extra context they volunteered, which callers can feed into
+   * generateSyllabus's "notes" for a more tailored curriculum.
+   */
+  async extractHobby(message: string): Promise<HobbyExtraction> {
+    const raw = await this.requestJson(
+      HOBBY_EXTRACTION_SYSTEM_PROMPT,
+      `User's message: ${message}`,
+    );
+    return this.parseAndValidate(raw, hobbyExtractionSchema);
   }
 
   async reviseSyllabus({
@@ -105,17 +131,21 @@ export class GroqService {
     return this.parseAndValidate(raw, checklistSchema).items;
   }
 
-  private buildUserPrompt({ hobby, level, targetDate }: GenerateSyllabusInput): string {
+  private buildUserPrompt({ hobby, level, targetDate, notes }: GenerateSyllabusInput): string {
     const daysUntilTarget = Math.max(
       1,
       Math.round((targetDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
     );
 
-    return [
+    const lines = [
       `Hobby: ${hobby}`,
       `Current level: ${level}`,
       `Target: the user wants to reach a good working level in about ${daysUntilTarget} day(s).`,
-    ].join('\n');
+    ];
+    if (notes) {
+      lines.push(`Additional context from the user: ${notes}`);
+    }
+    return lines.join('\n');
   }
 
   private async requestJson(systemPrompt: string, userPrompt: string): Promise<string> {

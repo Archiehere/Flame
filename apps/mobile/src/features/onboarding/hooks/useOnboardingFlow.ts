@@ -25,6 +25,8 @@ interface OnboardingState {
   name: string;
   isReturningUser: boolean;
   hobby: string;
+  hobbyNotes: string | null;
+  hobbyDisplayText: string;
   level: HobbyLevel | null;
   targetDateIso: string | null;
   targetDateLabel: string | null;
@@ -38,6 +40,8 @@ const initialState: OnboardingState = {
   name: '',
   isReturningUser: false,
   hobby: '',
+  hobbyNotes: null,
+  hobbyDisplayText: '',
   level: null,
   targetDateIso: null,
   targetDateLabel: null,
@@ -98,8 +102,14 @@ export function useOnboardingFlow() {
     });
   }, []);
 
-  const selectHobby = useCallback((hobby: string) => {
-    setState((prev) => ({ ...prev, hobby, step: 'level' }));
+  const selectHobby = useCallback((hobby: string, notes?: string, rawMessage?: string) => {
+    setState((prev) => ({
+      ...prev,
+      hobby,
+      hobbyNotes: notes ?? null,
+      hobbyDisplayText: rawMessage ?? hobby,
+      step: 'level',
+    }));
   }, []);
 
   const selectLevel = useCallback((level: HobbyLevel) => {
@@ -107,11 +117,16 @@ export function useOnboardingFlow() {
   }, []);
 
   const generatePlan = useCallback(
-    async (hobby: string, level: HobbyLevel, targetDateIso: string) => {
+    async (hobby: string, level: HobbyLevel, targetDateIso: string, hobbyNotes: string | null) => {
       setState((prev) => ({ ...prev, step: 'generating', errorMessage: null }));
 
       try {
-        const plan = await createLearningPlan({ hobby, level, targetDate: targetDateIso });
+        const plan = await createLearningPlan({
+          hobby,
+          level,
+          targetDate: targetDateIso,
+          hobbyNotes: hobbyNotes ?? undefined,
+        });
         setState((prev) => ({ ...prev, plan, step: 'syllabus' }));
       } catch (error) {
         console.error('[Flame] generatePlan failed:', error);
@@ -128,17 +143,17 @@ export function useOnboardingFlow() {
       if (!state.level) {
         return;
       }
-      await generatePlan(state.hobby, state.level, targetDateIso);
+      await generatePlan(state.hobby, state.level, targetDateIso, state.hobbyNotes);
     },
-    [state.hobby, state.level, generatePlan],
+    [state.hobby, state.level, state.hobbyNotes, generatePlan],
   );
 
   const retryGeneratePlan = useCallback(async () => {
     if (!state.level || !state.targetDateIso) {
       return;
     }
-    await generatePlan(state.hobby, state.level, state.targetDateIso);
-  }, [state.hobby, state.level, state.targetDateIso, generatePlan]);
+    await generatePlan(state.hobby, state.level, state.targetDateIso, state.hobbyNotes);
+  }, [state.hobby, state.level, state.targetDateIso, state.hobbyNotes, generatePlan]);
 
   const reviseChapters = useCallback(
     async (instruction: string): Promise<ChapterInput[]> => {

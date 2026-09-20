@@ -14,6 +14,14 @@ interface CourseDetailScreenProps {
   planId: string;
 }
 
+const RESUME_TITLE_MAX_LENGTH = 20;
+
+function truncateTitle(title: string): string {
+  return title.length > RESUME_TITLE_MAX_LENGTH
+    ? `${title.slice(0, RESUME_TITLE_MAX_LENGTH)}...`
+    : title;
+}
+
 function findResumeChapter(chapters: Chapter[]): Chapter | null {
   return (
     chapters.find((c) => c.status === 'current') ??
@@ -90,7 +98,7 @@ export function CourseDetailScreen({ planId }: CourseDetailScreenProps): React.J
                 label={
                   completedCount === totalCount && totalCount > 0
                     ? 'Review course'
-                    : `Resume: ${resumeChapter.title}`
+                    : `Resume: ${truncateTitle(resumeChapter.title)}`
                 }
                 onPress={() => router.push(`/chapter/${planId}/${resumeChapter._id}`)}
               />

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radii, shadow, spacing } from '../../../theme/theme';
 import { buildStreakDays } from '../weekDays';
 import { DayTile } from './DayTile';
@@ -10,23 +11,32 @@ interface StreakTrackerCardProps {
 
 export function StreakTrackerCard({ currentStreak }: StreakTrackerCardProps): React.JSX.Element {
   const router = useRouter();
-  const recentDays = buildStreakDays(3, currentStreak);
+  const weekDays = buildStreakDays(7, currentStreak);
+  const scrollRef = useRef<ScrollView>(null);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="View your streak"
-      onPress={() => router.push('/streak')}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-    >
-      <Text style={styles.headerText}>Track your streak and{'\n'}see each day</Text>
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="View your streak"
+        onPress={() => router.push('/streak')}
+        style={({ pressed }) => pressed && styles.headerPressed}
+      >
+        <Text style={styles.headerText}>Track your streak and{'\n'}see each day</Text>
+      </Pressable>
 
-      <View style={styles.tiles}>
-        {recentDays.map((day, index) => (
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tiles}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+      >
+        {weekDays.map((day, index) => (
           <DayTile key={index} dayLetter={day.dayLetter} state={day.state} />
         ))}
-      </View>
-    </Pressable>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -35,21 +45,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardDark,
     borderRadius: radii.md + 2,
     padding: spacing.lg,
+    paddingLeft: 0,
     gap: spacing.lg,
     ...shadow,
   },
-  cardPressed: {
-    opacity: 0.9,
+  headerPressed: {
+    opacity: 0.7,
   },
   headerText: {
     fontSize: 17,
+    paddingLeft: spacing.lg,
     fontFamily: fonts.medium,
     color: colors.textOnPrimary,
     lineHeight: 22,
   },
   tiles: {
-    justifyContent: 'center',
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
 });

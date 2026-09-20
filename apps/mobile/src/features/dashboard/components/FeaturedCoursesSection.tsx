@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing } from '../../../theme/theme';
+import { colors, fonts, spacing } from '../../../theme/theme';
 import { HobbyLevel } from '../../onboarding/types';
 import { FEATURED_COURSES, hobbiesMatch } from '../featuredCourses';
 import { CourseSummary } from '../hooks/useDashboard';
@@ -58,8 +58,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 24,
+    fontFamily: fonts.medium,
     color: colors.textPrimary,
   },
   cards: {

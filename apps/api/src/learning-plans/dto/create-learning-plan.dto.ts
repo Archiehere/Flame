@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { HobbyLevel } from '../enums/index.js';
 
 export class CreateLearningPlanDto {
@@ -11,4 +11,8 @@ export class CreateLearningPlanDto {
 
   @IsDateString()
   targetDate!: string;
+
+  @IsOptional()
+  @IsString()
+  hobbyNotes?: string;
 }

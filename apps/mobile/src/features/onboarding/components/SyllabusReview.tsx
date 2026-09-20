@@ -26,23 +26,15 @@ export function SyllabusReview({
   userName,
 }: SyllabusReviewProps): React.JSX.Element {
   const [chapters, setChapters] = useState(initialChapters);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [revisionLog, setRevisionLog] = useState<string[]>([]);
   const [reviseText, setReviseText] = useState('');
   const [isRevising, setIsRevising] = useState(false);
   const [reviseError, setReviseError] = useState<string | null>(null);
 
-  const updateChapter = (index: number, patch: Partial<ChapterInput>) => {
-    setChapters((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
-  };
-
   const removeChapter = (index: number) => {
     setChapters((prev) =>
       prev.filter((_, i) => i !== index).map((c, i) => ({ ...c, order: i })),
     );
-    if (editingIndex === index) {
-      setEditingIndex(null);
-    }
   };
 
   const submitRevision = async () => {
@@ -59,7 +51,6 @@ export function SyllabusReview({
     try {
       const revised = await onRevise(instruction);
       setChapters(revised);
-      setEditingIndex(null);
     } catch {
       setReviseError("Couldn't apply that change. Please try again.");
     } finally {
@@ -82,10 +73,7 @@ export function SyllabusReview({
             chapter={chapter}
             isCurrent={index === 0}
             isLast={index === chapters.length - 1}
-            isEditing={editingIndex === index}
             removable={chapters.length > 1}
-            onChange={(patch) => updateChapter(index, patch)}
-            onToggleEdit={() => setEditingIndex((current) => (current === index ? null : index))}
             onRemove={() => removeChapter(index)}
           />
         ))}

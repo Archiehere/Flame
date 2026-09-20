@@ -19,12 +19,12 @@ describe('StreakTrackerCard', () => {
     expect(mockPush).toHaveBeenCalledWith('/streak');
   });
 
-  it('fills in as many of the 3 tiles as the current streak, capped at 3', () => {
+  it('fills in as many of the 7 tiles as the current streak, capped at 7', () => {
     render(<StreakTrackerCard currentStreak={2} />);
 
     expect(screen.getByText('Streak')).toBeTruthy();
     expect(screen.getAllByText('Done')).toHaveLength(1);
-    expect(screen.getAllByText('Miss')).toHaveLength(1);
+    expect(screen.getAllByText('Miss')).toHaveLength(5);
   });
 
   it('shows no filled tiles when there is no active streak', () => {
@@ -32,14 +32,14 @@ describe('StreakTrackerCard', () => {
 
     expect(screen.queryByText('Streak')).toBeNull();
     expect(screen.queryByText('Done')).toBeNull();
-    expect(screen.getAllByText('Miss')).toHaveLength(3);
+    expect(screen.getAllByText('Miss')).toHaveLength(7);
   });
 
-  it('never fills more than the 3 visible tiles', () => {
+  it('never fills more than the 7 visible tiles', () => {
     render(<StreakTrackerCard currentStreak={30} />);
 
     expect(screen.getByText('Streak')).toBeTruthy();
-    expect(screen.getAllByText('Done')).toHaveLength(2);
+    expect(screen.getAllByText('Done')).toHaveLength(6);
     expect(screen.queryByText('Miss')).toBeNull();
   });
 });

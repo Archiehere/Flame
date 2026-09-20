@@ -42,6 +42,7 @@ describe('LearningPlansService', () => {
     generateSyllabus: ReturnType<typeof vi.fn>;
     reviseSyllabus: ReturnType<typeof vi.fn>;
     generateChecklistItems: ReturnType<typeof vi.fn>;
+    extractHobby: ReturnType<typeof vi.fn>;
   };
   let youtubeService: { findBestVideo: ReturnType<typeof vi.fn> };
 
@@ -62,6 +63,7 @@ describe('LearningPlansService', () => {
         { title: 'Chords', description: 'Learn chords', order: 1, timeEstimateDays: 3 },
       ]),
       generateChecklistItems: vi.fn(),
+      extractHobby: vi.fn(),
     };
     youtubeService = { findBestVideo: vi.fn() };
 
@@ -98,6 +100,34 @@ describe('LearningPlansService', () => {
           chapters: [expect.objectContaining({ title: 'Basics', status: ChapterStatus.LOCKED })],
         }),
       );
+    });
+
+    it('passes hobbyNotes through to syllabus generation as notes', async () => {
+      planModel.create.mockResolvedValue({ id: 'plan-1' });
+
+      await service.create('device-1', {
+        hobby: 'Skateboarding',
+        level: HobbyLevel.BEGINNER,
+        targetDate: new Date().toISOString(),
+        hobbyNotes: 'Wants skateboarding specifically, not rollerblading',
+      });
+
+      expect(groqService.generateSyllabus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notes: 'Wants skateboarding specifically, not rollerblading',
+        }),
+      );
+    });
+  });
+
+  describe('extractHobby', () => {
+    it('delegates to GroqService', async () => {
+      groqService.extractHobby.mockResolvedValue({ hobby: 'Skating' });
+
+      const result = await service.extractHobby("Lets go with skating");
+
+      expect(groqService.extractHobby).toHaveBeenCalledWith("Lets go with skating");
+      expect(result).toEqual({ hobby: 'Skating' });
     });
   });
 

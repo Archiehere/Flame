@@ -178,4 +178,58 @@ describe('useOnboardingFlow', () => {
     expect(mockApproveLearningPlan).toHaveBeenCalledWith('plan-1');
     await waitFor(() => expect(result.current.step).toBe('approved'));
   });
+
+  it('passes hobby notes from selectHobby through to plan generation', async () => {
+    mockCreateLearningPlan.mockResolvedValue(samplePlan);
+    const { result } = renderHook(() => useOnboardingFlow());
+
+    await waitFor(() => expect(result.current.step).toBe('name'));
+    act(() => result.current.selectName('Ada'));
+    act(() =>
+      result.current.selectHobby(
+        'Skateboarding',
+        'Wants skateboarding specifically, not rollerblading',
+      ),
+    );
+    act(() => result.current.selectLevel('beginner'));
+    await act(async () => {
+      await result.current.selectTargetDate(new Date().toISOString(), '3 months');
+    });
+
+    expect(mockCreateLearningPlan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hobby: 'Skateboarding',
+        hobbyNotes: 'Wants skateboarding specifically, not rollerblading',
+      }),
+    );
+  });
+
+  it('keeps the raw typed message as hobbyDisplayText, separate from the cleaned hobby', async () => {
+    const { result } = renderHook(() => useOnboardingFlow());
+
+    await waitFor(() => expect(result.current.step).toBe('name'));
+    act(() => result.current.selectName('Ada'));
+    act(() =>
+      result.current.selectHobby(
+        'Valorant',
+        'Wants to focus on aiming',
+        'I was thinking of learning about Valornt gaming... I specifically wanna learn about aiming in valorant',
+      ),
+    );
+
+    expect(result.current.hobby).toBe('Valorant');
+    expect(result.current.hobbyDisplayText).toBe(
+      'I was thinking of learning about Valornt gaming... I specifically wanna learn about aiming in valorant',
+    );
+  });
+
+  it('falls back to the hobby itself as hobbyDisplayText when no raw message is given', async () => {
+    const { result } = renderHook(() => useOnboardingFlow());
+
+    await waitFor(() => expect(result.current.step).toBe('name'));
+    act(() => result.current.selectName('Ada'));
+    act(() => result.current.selectHobby('Guitar'));
+
+    expect(result.current.hobbyDisplayText).toBe('Guitar');
+  });
 });

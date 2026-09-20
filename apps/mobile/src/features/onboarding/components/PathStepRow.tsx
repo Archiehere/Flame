@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { TrashIcon } from '../../../components/TrashIcon';
 import { colors, radii, spacing } from '../../../theme/theme';
 import { ChapterInput } from '../types';
 
@@ -6,10 +7,7 @@ interface PathStepRowProps {
   chapter: ChapterInput;
   isCurrent: boolean;
   isLast: boolean;
-  isEditing: boolean;
   removable: boolean;
-  onChange: (patch: Partial<ChapterInput>) => void;
-  onToggleEdit: () => void;
   onRemove: () => void;
 }
 
@@ -17,10 +15,7 @@ export function PathStepRow({
   chapter,
   isCurrent,
   isLast,
-  isEditing,
   removable,
-  onChange,
-  onToggleEdit,
   onRemove,
 }: PathStepRowProps): React.JSX.Element {
   return (
@@ -33,40 +28,11 @@ export function PathStepRow({
       </View>
 
       <View style={styles.content}>
-        {isEditing ? (
-          <>
-            <TextInput
-              value={chapter.title}
-              onChangeText={(title) => onChange({ title })}
-              style={styles.titleInput}
-              placeholder="Chapter title"
-            />
-            <TextInput
-              value={chapter.description}
-              onChangeText={(description) => onChange({ description })}
-              style={styles.descriptionInput}
-              placeholder="What will this chapter cover?"
-              multiline
-            />
-          </>
-        ) : (
-          <>
-            <Text style={styles.title}>{chapter.title}</Text>
-            {isCurrent && <Text style={styles.currentLabel}>CURRENT STEP</Text>}
-          </>
-        )}
+        <Text style={styles.title}>{chapter.title}</Text>
+        {isCurrent && <Text style={styles.currentLabel}>CURRENT STEP</Text>}
       </View>
 
       <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={isEditing ? 'Save chapter' : 'Edit chapter'}
-          onPress={onToggleEdit}
-          hitSlop={8}
-          style={styles.actionButton}
-        >
-          <Text style={styles.actionIcon}>{isEditing ? '✓' : '✏️'}</Text>
-        </Pressable>
         {removable && (
           <Pressable
             accessibilityRole="button"
@@ -75,7 +41,7 @@ export function PathStepRow({
             hitSlop={8}
             style={styles.actionButton}
           >
-            <Text style={styles.actionIcon}>🗑️</Text>
+            <TrashIcon size={16} color={colors.textSecondary} />
           </Pressable>
         )}
       </View>
@@ -136,17 +102,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: 0.5,
   },
-  titleInput: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    paddingVertical: 2,
-  },
-  descriptionInput: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 18,
-  },
   actions: {
     flexDirection: 'row',
     gap: spacing.xs,
@@ -157,8 +112,5 @@ const styles = StyleSheet.create({
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  actionIcon: {
-    fontSize: 15,
   },
 });

@@ -8,11 +8,11 @@ describe('buildStreakDays', () => {
     const days = buildStreakDays(4, 2, friday);
 
     expect(days).toHaveLength(4);
-    expect(days.map((d) => d.dayLetter)).toEqual(['T', 'W', 'T', 'F']);
-    expect(days[0]).toEqual({ dayLetter: 'T', state: 'miss', delta: null });
-    expect(days[1]).toEqual({ dayLetter: 'W', state: 'miss', delta: null });
-    expect(days[2]).toEqual({ dayLetter: 'T', state: 'done', delta: '+1' });
-    expect(days[3]).toEqual({ dayLetter: 'F', state: 'streak', delta: '+1' });
+    expect(days.map((d) => d.dayLetter)).toEqual(['Tue', 'Wed', 'Thu', 'Fri']);
+    expect(days[0]).toEqual({ dayLetter: 'Tue', state: 'miss', delta: null });
+    expect(days[1]).toEqual({ dayLetter: 'Wed', state: 'miss', delta: null });
+    expect(days[2]).toEqual({ dayLetter: 'Thu', state: 'done', delta: '+1' });
+    expect(days[3]).toEqual({ dayLetter: 'Fri', state: 'streak', delta: '+1' });
   });
 
   it('marks nothing as filled when the current streak is 0', () => {

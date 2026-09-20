@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, shadow, spacing } from '../../../theme/theme';
+import { colors, fonts, radii, shadow, spacing } from '../../../theme/theme';
 import { getHobbyIcon } from '../hobbyIcons';
 import { CourseSummary } from '../hooks/useDashboard';
 
@@ -41,19 +41,19 @@ export function CourseCard({ course, onRemove }: CourseCardProps): React.JSX.Ele
 
 const styles = StyleSheet.create({
   card: {
-    width: 170,
+    width: 200,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.xs,
-    ...shadow,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
   },
   removeButton: {
     position: 'absolute',
-    top: spacing.xs,
-    right: spacing.xs,
+    top: 15,
+    right: spacing.md,
     width: 22,
     height: 22,
     borderRadius: radii.pill,
@@ -73,13 +73,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 18,
+    fontFamily: fonts.medium,
     color: colors.textPrimary,
     lineHeight: 20,
   },
   percent: {
     fontSize: 13,
+    paddingTop: 10,
     color: colors.textSecondary,
   },
   progressTrack: {

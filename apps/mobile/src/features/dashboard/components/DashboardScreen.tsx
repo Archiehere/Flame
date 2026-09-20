@@ -45,7 +45,7 @@ export function DashboardScreen(): React.JSX.Element {
           />
 
           <View style={styles.heading}>
-            <Text style={styles.title}>Hi, ready to learn?</Text>
+            <Text style={styles.title}>Hi, Ready to learn?</Text>
             <Text style={styles.subtitle}>Continue streak and progress learning</Text>
           </View>
 
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    gap: spacing.xl,
+    gap: spacing.xxl,
   },
   heading: {
     gap: spacing.xs,
