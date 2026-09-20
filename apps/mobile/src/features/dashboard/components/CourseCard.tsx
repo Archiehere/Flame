@@ -48,7 +48,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.lg,
-    gap: spacing.md,
   },
   removeButton: {
     position: 'absolute',
@@ -73,18 +72,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   title: {
+    height: 40,
     fontSize: 18,
     fontFamily: fonts.medium,
     color: colors.textPrimary,
     lineHeight: 20,
+    marginBottom: spacing.xs,
   },
   percent: {
     fontSize: 13,
-    paddingTop: 10,
     color: colors.textSecondary,
   },
   progressTrack: {
-    marginTop: spacing.xs,
+    marginTop: spacing.xxl,
     height: 6,
     borderRadius: radii.pill,
     backgroundColor: colors.border,

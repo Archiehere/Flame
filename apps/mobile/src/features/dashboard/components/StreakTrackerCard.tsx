@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 17,
     paddingLeft: spacing.lg,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.semiBold,
     color: colors.textOnPrimary,
     lineHeight: 22,
   },

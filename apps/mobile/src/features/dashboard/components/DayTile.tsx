@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontFamily: fonts.medium,
+    fontFamily: fonts.regular,
     color: colors.textPrimary,
   },
   labelStreak: {

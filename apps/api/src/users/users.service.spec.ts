@@ -121,5 +121,33 @@ describe('UsersService', () => {
       expect(result.currentStreak).toBe(7);
       expect(user.save).not.toHaveBeenCalled();
     });
+
+    it('increments using the client-provided local date, independent of server UTC time', async () => {
+      const user = userWithLastActive(new Date('2026-09-20T00:00:00.000Z'), 3);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc', '2026-09-21');
+
+      expect(result.currentStreak).toBe(4);
+    });
+
+    it('is a no-op when the client-provided local date matches the stored last-active day', async () => {
+      const user = userWithLastActive(new Date('2026-09-21T00:00:00.000Z'), 5);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc', '2026-09-21');
+
+      expect(result.currentStreak).toBe(5);
+      expect(user.save).not.toHaveBeenCalled();
+    });
+
+    it('resets the streak when the client-provided local date shows a gap', async () => {
+      const user = userWithLastActive(new Date('2026-09-18T00:00:00.000Z'), 9);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc', '2026-09-21');
+
+      expect(result.currentStreak).toBe(1);
+    });
   });
 });

@@ -149,14 +149,23 @@ describe('LearningPlansService', () => {
   });
 
   describe('getForAccess', () => {
-    it('returns the plan and records the day as active', async () => {
+    it('returns the plan and records the day as active using the server clock when no local date is given', async () => {
       const plan = { id: 'plan-1', userId };
       planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
 
       const result = await service.getForAccess('device-1', 'plan-1');
 
       expect(result).toBe(plan);
-      expect(usersService.recordActivity).toHaveBeenCalledWith('device-1');
+      expect(usersService.recordActivity).toHaveBeenCalledWith('device-1', undefined);
+    });
+
+    it('passes the client-provided local date through to recordActivity', async () => {
+      const plan = { id: 'plan-1', userId };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      await service.getForAccess('device-1', 'plan-1', '2026-09-21');
+
+      expect(usersService.recordActivity).toHaveBeenCalledWith('device-1', '2026-09-21');
     });
 
     it('does not record activity when the plan is not found', async () => {
