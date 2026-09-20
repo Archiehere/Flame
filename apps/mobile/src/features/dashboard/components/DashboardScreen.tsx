@@ -11,7 +11,7 @@ import { ProfileHeader } from './ProfileHeader';
 import { StreakTrackerCard } from './StreakTrackerCard';
 
 export function DashboardScreen(): React.JSX.Element {
-  const { isLoading, user, courses, errorMessage, reload } = useDashboard();
+  const { isLoading, user, courses, errorMessage, reload, removeCourse } = useDashboard();
   const [rewardModalVisible, setRewardModalVisible] = useState(false);
 
   if (isLoading) {
@@ -51,7 +51,7 @@ export function DashboardScreen(): React.JSX.Element {
 
           <StreakTrackerCard onPressReward={() => setRewardModalVisible(true)} />
 
-          <OngoingCourseSection courses={courses} />
+          <OngoingCourseSection courses={courses} onRemoveCourse={removeCourse} />
         </ScrollView>
 
         <LevelUpModal visible={rewardModalVisible} onClose={() => setRewardModalVisible(false)} />

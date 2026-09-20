@@ -15,6 +15,7 @@ interface VideoApiItem {
   snippet: { title: string };
   contentDetails: { duration: string };
   statistics: { viewCount?: string };
+  status: { embeddable: boolean };
 }
 
 const IDEAL_DURATION_MIN_SECONDS = 90;
@@ -83,7 +84,7 @@ export class YoutubeService {
 
   private async pickBest(videoIds: string[]): Promise<YoutubeVideo | null> {
     const url = new URL('https://www.googleapis.com/youtube/v3/videos');
-    url.searchParams.set('part', 'contentDetails,statistics,snippet');
+    url.searchParams.set('part', 'contentDetails,statistics,snippet,status');
     url.searchParams.set('id', videoIds.join(','));
     url.searchParams.set('key', this.apiKey ?? '');
 
@@ -92,7 +93,7 @@ export class YoutubeService {
       throw new Error(`YouTube videos lookup failed with status ${response.status}`);
     }
     const body = (await response.json()) as { items?: VideoApiItem[] };
-    const items = body.items ?? [];
+    const items = (body.items ?? []).filter((item) => item.status.embeddable);
     if (items.length === 0) {
       return null;
     }

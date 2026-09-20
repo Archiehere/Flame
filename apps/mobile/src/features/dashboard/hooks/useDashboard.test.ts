@@ -1,5 +1,5 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
-import { getActiveLearningPlans } from '../../../services/learningPlanApi';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { getActiveLearningPlans, removeLearningPlan } from '../../../services/learningPlanApi';
 import { getCurrentUser } from '../../../services/userApi';
 import { useDashboard } from './useDashboard';
 
@@ -7,6 +7,7 @@ jest.mock('../../../services/learningPlanApi');
 jest.mock('../../../services/userApi');
 
 const mockGetActiveLearningPlans = getActiveLearningPlans as jest.Mock;
+const mockRemoveLearningPlan = removeLearningPlan as jest.Mock;
 const mockGetCurrentUser = getCurrentUser as jest.Mock;
 
 const plan = {
@@ -61,6 +62,7 @@ describe('useDashboard', () => {
         hobby: 'Guitar',
         levelLabel: 'Complete beginner',
         percentComplete: 0,
+        currentChapterId: 'c1',
         currentChapterTitle: 'Basics',
       },
     ]);
@@ -99,5 +101,23 @@ describe('useDashboard', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.errorMessage).toBeTruthy();
+  });
+
+  it('removes a course from state after a successful delete', async () => {
+    mockGetCurrentUser.mockResolvedValue({ name: 'Ada', currentStreak: 0 });
+    mockGetActiveLearningPlans.mockResolvedValue([plan, secondPlan]);
+    mockRemoveLearningPlan.mockResolvedValue({ deleted: true });
+
+    const { result } = renderHook(() => useDashboard());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.courses).toHaveLength(2);
+
+    await act(async () => {
+      await result.current.removeCourse('plan-1');
+    });
+
+    expect(mockRemoveLearningPlan).toHaveBeenCalledWith('plan-1');
+    expect(result.current.courses.map((c) => c.planId)).toEqual(['plan-2']);
   });
 });

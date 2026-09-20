@@ -7,10 +7,29 @@ import { CourseCard } from './CourseCard';
 
 interface OngoingCourseSectionProps {
   courses: CourseSummary[];
+  onRemoveCourse: (planId: string) => Promise<void>;
 }
 
-export function OngoingCourseSection({ courses }: OngoingCourseSectionProps): React.JSX.Element {
+export function OngoingCourseSection({
+  courses,
+  onRemoveCourse,
+}: OngoingCourseSectionProps): React.JSX.Element {
   const router = useRouter();
+
+  const confirmRemove = (course: CourseSummary) => {
+    Alert.alert('Remove course', `Remove "${course.hobby}" from your dashboard?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          onRemoveCourse(course.planId).catch(() =>
+            Alert.alert('Something went wrong', "Couldn't remove that course. Try again."),
+          );
+        },
+      },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
@@ -30,7 +49,11 @@ export function OngoingCourseSection({ courses }: OngoingCourseSectionProps): Re
         contentContainerStyle={styles.cards}
       >
         {courses.map((course) => (
-          <CourseCard key={course.planId} course={course} />
+          <CourseCard
+            key={course.planId}
+            course={course}
+            onRemove={() => confirmRemove(course)}
+          />
         ))}
         <AddCourseCard onPress={() => router.push('/new-course')} />
       </ScrollView>

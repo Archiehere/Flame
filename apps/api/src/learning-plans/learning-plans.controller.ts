@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { DeviceId } from '../common/decorators/device-id.decorator.js';
 import { CreateLearningPlanDto } from './dto/create-learning-plan.dto.js';
 import { ReviseChaptersDto } from './dto/revise-chapters.dto.js';
@@ -45,5 +45,19 @@ export class LearningPlansController {
   @Post(':id/approve')
   approve(@DeviceId() deviceId: string, @Param('id') id: string) {
     return this.learningPlansService.approve(deviceId, id);
+  }
+
+  @Delete(':id')
+  remove(@DeviceId() deviceId: string, @Param('id') id: string) {
+    return this.learningPlansService.remove(deviceId, id);
+  }
+
+  @Get(':id/chapters/:chapterId/checklist')
+  getChapterChecklist(
+    @DeviceId() deviceId: string,
+    @Param('id') id: string,
+    @Param('chapterId') chapterId: string,
+  ) {
+    return this.learningPlansService.getChapterChecklist(deviceId, id, chapterId);
   }
 }

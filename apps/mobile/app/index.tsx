@@ -1,18 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { OnboardingChatScreen } from '../src/features/onboarding/components/OnboardingChatScreen';
 import { getActiveLearningPlans } from '../src/services/learningPlanApi';
-import { colors } from '../src/theme/theme';
+import { colors, spacing } from '../src/theme/theme';
 
-type GateStatus = 'checking' | 'no-active-plan';
+type GateStatus = 'checking' | 'no-active-plan' | 'error';
 
 export default function HomeRoute(): React.JSX.Element {
   const router = useRouter();
   const [status, setStatus] = useState<GateStatus>('checking');
 
-  useEffect(() => {
+  const checkForActivePlan = useCallback(() => {
     let cancelled = false;
+    setStatus('checking');
 
     getActiveLearningPlans()
       .then((plans) => {
@@ -27,7 +28,7 @@ export default function HomeRoute(): React.JSX.Element {
       })
       .catch(() => {
         if (!cancelled) {
-          setStatus('no-active-plan');
+          setStatus('error');
         }
       });
 
@@ -36,10 +37,23 @@ export default function HomeRoute(): React.JSX.Element {
     };
   }, [router]);
 
+  useEffect(() => checkForActivePlan(), [checkForActivePlan]);
+
   if (status === 'checking') {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Couldn't reach Flame. Check your connection.</Text>
+        <Pressable accessibilityRole="button" onPress={checkForActivePlan}>
+          <Text style={styles.retryText}>Try again</Text>
+        </Pressable>
       </View>
     );
   }
@@ -53,5 +67,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  errorText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  retryText: {
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

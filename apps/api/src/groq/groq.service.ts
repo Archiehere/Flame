@@ -1,7 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Groq from 'groq-sdk';
+import { ZodType } from 'zod';
 import { HobbyLevel } from '../learning-plans/enums/index.js';
+import { ChecklistItemGen, checklistSchema } from './checklist.schema.js';
 import { Syllabus, syllabusSchema } from './syllabus.schema.js';
 
 export interface GenerateSyllabusInput {
@@ -13,6 +15,13 @@ export interface GenerateSyllabusInput {
 export interface ReviseSyllabusInput {
   currentChapters: Syllabus['chapters'];
   instruction: string;
+}
+
+export interface GenerateChecklistInput {
+  hobby: string;
+  level: HobbyLevel;
+  chapterTitle: string;
+  chapterDescription: string;
 }
 
 const SYSTEM_PROMPT = `You are the curriculum planner for Flame, a mobile app that teaches people hobbies entirely within the app.
@@ -39,6 +48,21 @@ Rules you must always follow:
 - "timeEstimateDays" is a positive number of days the chapter should take; short chapters can be a single day.
 - Do not include markdown, comments, or any text outside the JSON object.`;
 
+const CHECKLIST_SYSTEM_PROMPT = `You are the lesson designer for Flame, a mobile app that teaches people hobbies entirely within the app.
+
+You will be given one chapter from a hobby curriculum. Break it into a checklist of individual techniques or skills the user can track progress against.
+
+Rules you must always follow:
+- Every lesson happens inside this app. Never suggest the user join a community, find a local class or teacher, watch content on another app, or go anywhere outside Flame.
+- For each item, choose the modality that best teaches that specific skill: "text" for conceptual/reference material, "video" for physical/visual technique, or "both" when seeing it demonstrated AND having written reference notes both help.
+- When modality is "text" or "both", write the actual lesson content directly in "textContent" — this is what the user reads in-app, not a placeholder or summary of what they should look up elsewhere.
+- When modality is "video" or "both", write a specific, well-formed YouTube search query in "videoSearchQuery" that would surface a good instructional video teaching exactly this skill.
+- Mark foundational, prerequisite items as "required": true. Mark everything else "required": false — these are safe for the user to skip.
+- Respond with strict JSON only, matching this exact shape and nothing else:
+{"items":[{"title":"string","description":"string","modality":"text"|"video"|"both","required":true,"order":0,"textContent":"string (omit if modality is video)","videoSearchQuery":"string (omit if modality is text)"}]}
+- "order" starts at 0 and increases by 1 per item.
+- Do not include markdown, comments, or any text outside the JSON object.`;
+
 @Injectable()
 export class GroqService {
   private readonly client: Groq;
@@ -52,7 +76,7 @@ export class GroqService {
   async generateSyllabus(input: GenerateSyllabusInput): Promise<Syllabus['chapters']> {
     const userPrompt = this.buildUserPrompt(input);
     const raw = await this.requestJson(SYSTEM_PROMPT, userPrompt);
-    return this.parseAndValidate(raw);
+    return this.parseAndValidate(raw, syllabusSchema).chapters;
   }
 
   async reviseSyllabus({
@@ -64,7 +88,18 @@ export class GroqService {
       `User's request: ${instruction}`,
     ].join('\n');
     const raw = await this.requestJson(REVISE_SYSTEM_PROMPT, userPrompt);
-    return this.parseAndValidate(raw);
+    return this.parseAndValidate(raw, syllabusSchema).chapters;
+  }
+
+  async generateChecklistItems(input: GenerateChecklistInput): Promise<ChecklistItemGen[]> {
+    const userPrompt = [
+      `Hobby: ${input.hobby}`,
+      `Current level: ${input.level}`,
+      `Chapter: ${input.chapterTitle}`,
+      `Chapter description: ${input.chapterDescription}`,
+    ].join('\n');
+    const raw = await this.requestJson(CHECKLIST_SYSTEM_PROMPT, userPrompt);
+    return this.parseAndValidate(raw, checklistSchema).items;
   }
 
   private buildUserPrompt({ hobby, level, targetDate }: GenerateSyllabusInput): string {
@@ -92,24 +127,24 @@ export class GroqService {
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
-      throw new InternalServerErrorException('Groq returned an empty syllabus response');
+      throw new InternalServerErrorException('Groq returned an empty response');
     }
     return content;
   }
 
-  private parseAndValidate(raw: string): Syllabus['chapters'] {
+  private parseAndValidate<T>(raw: string, schema: ZodType<T>): T {
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      throw new InternalServerErrorException('Groq returned malformed JSON for the syllabus');
+      throw new InternalServerErrorException('Groq returned malformed JSON');
     }
 
-    const result = syllabusSchema.safeParse(parsed);
+    const result = schema.safeParse(parsed);
     if (!result.success) {
-      throw new InternalServerErrorException('Groq syllabus did not match the expected shape');
+      throw new InternalServerErrorException('Groq response did not match the expected shape');
     }
 
-    return result.data.chapters;
+    return result.data;
   }
 }

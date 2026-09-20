@@ -125,4 +125,76 @@ describe('GroqService', () => {
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
+
+  describe('generateChecklistItems', () => {
+    const input = {
+      hobby: 'Guitar',
+      level: HobbyLevel.BEGINNER,
+      chapterTitle: 'Basic Chords',
+      chapterDescription: 'Learn open chords',
+    };
+
+    it('returns parsed checklist items for a well-formed response', async () => {
+      createMock.mockResolvedValue(
+        completionWith(
+          JSON.stringify({
+            items: [
+              {
+                title: 'E minor chord',
+                description: 'Learn the E minor shape',
+                modality: 'video',
+                required: true,
+                order: 0,
+                videoSearchQuery: 'how to play E minor chord guitar beginner',
+              },
+              {
+                title: 'Chord theory basics',
+                description: 'Why chords are built the way they are',
+                modality: 'text',
+                required: false,
+                order: 1,
+                textContent: 'A chord is built from stacked thirds...',
+              },
+            ],
+          }),
+        ),
+      );
+
+      const items = await service.generateChecklistItems(input);
+
+      expect(items).toHaveLength(2);
+      expect(items[0]?.modality).toBe('video');
+      expect(items[1]?.textContent).toContain('stacked thirds');
+    });
+
+    it('throws when a video item is missing videoSearchQuery', async () => {
+      createMock.mockResolvedValue(
+        completionWith(
+          JSON.stringify({
+            items: [
+              {
+                title: 'E minor chord',
+                description: 'Learn the E minor shape',
+                modality: 'video',
+                required: true,
+                order: 0,
+              },
+            ],
+          }),
+        ),
+      );
+
+      await expect(service.generateChecklistItems(input)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+
+    it('throws when Groq returns malformed JSON', async () => {
+      createMock.mockResolvedValue(completionWith('not json'));
+
+      await expect(service.generateChecklistItems(input)).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+  });
 });

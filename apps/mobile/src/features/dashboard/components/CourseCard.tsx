@@ -1,15 +1,37 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, shadow, spacing } from '../../../theme/theme';
 import { getHobbyIcon } from '../hobbyIcons';
 import { CourseSummary } from '../hooks/useDashboard';
 
 interface CourseCardProps {
   course: CourseSummary;
+  onRemove: () => void;
 }
 
-export function CourseCard({ course }: CourseCardProps): React.JSX.Element {
+export function CourseCard({ course, onRemove }: CourseCardProps): React.JSX.Element {
+  const router = useRouter();
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      accessibilityRole="button"
+      disabled={!course.currentChapterId}
+      onPress={() => {
+        if (course.currentChapterId) {
+          router.push(`/chapter/${course.planId}/${course.currentChapterId}`);
+        }
+      }}
+      style={styles.card}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Remove course"
+        onPress={onRemove}
+        hitSlop={8}
+        style={styles.removeButton}
+      >
+        <Text style={styles.removeIcon}>×</Text>
+      </Pressable>
       <Text style={styles.icon}>{getHobbyIcon(course.hobby)}</Text>
       <Text style={styles.title} numberOfLines={2}>
         {`Learning ${course.hobby}`}
@@ -18,7 +40,7 @@ export function CourseCard({ course }: CourseCardProps): React.JSX.Element {
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${course.percentComplete}%` }]} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -32,6 +54,24 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
     ...shadow,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    width: 22,
+    height: 22,
+    borderRadius: radii.pill,
+    backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  removeIcon: {
+    fontSize: 15,
+    lineHeight: 15,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
   icon: {
     fontSize: 30,

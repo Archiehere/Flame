@@ -1,11 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { GroqService } from '../groq/groq.service.js';
 import { UsersService } from '../users/users.service.js';
+import { YoutubeService } from '../youtube/youtube.service.js';
 import { CreateLearningPlanDto } from './dto/create-learning-plan.dto.js';
 import { ChapterInputDto } from './dto/update-chapters.dto.js';
-import { ChapterStatus, LearningPlanStatus } from './enums/index.js';
+import {
+  ChapterStatus,
+  ChecklistItemStatus,
+  ContentModality,
+  LearningPlanStatus,
+} from './enums/index.js';
+import { Chapter } from './schemas/chapter.schema.js';
+import { ChecklistItem } from './schemas/checklist-item.schema.js';
 import { LearningPlan, LearningPlanDocument } from './schemas/learning-plan.schema.js';
 
 @Injectable()
@@ -14,6 +22,7 @@ export class LearningPlansService {
     @InjectModel(LearningPlan.name) private readonly planModel: Model<LearningPlanDocument>,
     private readonly usersService: UsersService,
     private readonly groqService: GroqService,
+    private readonly youtubeService: YoutubeService,
   ) {}
 
   async create(deviceId: string, dto: CreateLearningPlanDto): Promise<LearningPlanDocument> {
@@ -68,7 +77,7 @@ export class LearningPlansService {
       timeEstimateDays: chapter.timeEstimateDays,
       status: ChapterStatus.LOCKED,
       checklistItems: [],
-    }));
+    })) as unknown as Types.DocumentArray<Chapter>;
     return plan.save();
   }
 
@@ -94,8 +103,60 @@ export class LearningPlansService {
       ...chapter,
       status: ChapterStatus.LOCKED,
       checklistItems: [],
-    }));
+    })) as unknown as Types.DocumentArray<Chapter>;
     return plan.save();
+  }
+
+  async getChapterChecklist(
+    deviceId: string,
+    planId: string,
+    chapterId: string,
+  ): Promise<LearningPlanDocument> {
+    const plan = await this.findOne(deviceId, planId);
+    const chapter = plan.chapters.id(chapterId);
+    if (!chapter) {
+      throw new NotFoundException(`Chapter ${chapterId} not found`);
+    }
+
+    if (chapter.checklistItems.length === 0) {
+      const generatedItems = await this.groqService.generateChecklistItems({
+        hobby: plan.hobby,
+        level: plan.level,
+        chapterTitle: chapter.title,
+        chapterDescription: chapter.description,
+      });
+
+      const items = await Promise.all(
+        generatedItems.map(async (item) => {
+          const youtubeVideoId =
+            item.modality !== 'text' && item.videoSearchQuery
+              ? (await this.youtubeService.findBestVideo(item.videoSearchQuery))?.videoId
+              : undefined;
+
+          return {
+            title: item.title,
+            description: item.description,
+            modality: item.modality as ContentModality,
+            required: item.required,
+            order: item.order,
+            status: ChecklistItemStatus.NOT_STARTED,
+            textContent: item.textContent,
+            youtubeVideoId,
+          };
+        }),
+      );
+      chapter.checklistItems = items as unknown as ChecklistItem[];
+
+      await plan.save();
+    }
+
+    return plan;
+  }
+
+  async remove(deviceId: string, planId: string): Promise<{ deleted: true }> {
+    const plan = await this.findOne(deviceId, planId);
+    await plan.deleteOne();
+    return { deleted: true };
   }
 
   async approve(deviceId: string, planId: string): Promise<LearningPlanDocument> {

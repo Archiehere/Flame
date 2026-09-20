@@ -41,3 +41,13 @@ export function approveLearningPlan(planId: string): Promise<LearningPlan> {
 export function getActiveLearningPlans(): Promise<LearningPlan[]> {
   return apiFetch<LearningPlan[]>('/learning-plans/active');
 }
+
+export function getChapterChecklist(planId: string, chapterId: string): Promise<LearningPlan> {
+  return apiFetch<LearningPlan>(`/learning-plans/${planId}/chapters/${chapterId}/checklist`);
+}
+
+export function removeLearningPlan(planId: string): Promise<{ deleted: true }> {
+  return apiFetch<{ deleted: true }>(`/learning-plans/${planId}`, {
+    method: 'DELETE',
+  });
+}

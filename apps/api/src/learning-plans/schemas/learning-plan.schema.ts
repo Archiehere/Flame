@@ -28,7 +28,7 @@ export class LearningPlan {
   status!: LearningPlanStatus;
 
   @Prop({ type: [ChapterSchema], default: [] })
-  chapters!: Chapter[];
+  chapters!: Types.DocumentArray<Chapter>;
 }
 
 export const LearningPlanSchema = SchemaFactory.createForClass(LearningPlan);

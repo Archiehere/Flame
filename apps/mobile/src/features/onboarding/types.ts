@@ -7,9 +7,25 @@ export interface ChapterInput {
   timeEstimateDays: number;
 }
 
+export type ChecklistItemModality = 'text' | 'video' | 'both';
+export type ChecklistItemStatus = 'not_started' | 'in_progress' | 'mastered' | 'skipped';
+
+export interface ChecklistItem {
+  _id: string;
+  title: string;
+  description: string;
+  modality: ChecklistItemModality;
+  required: boolean;
+  order: number;
+  status: ChecklistItemStatus;
+  textContent?: string;
+  youtubeVideoId?: string;
+}
+
 export interface Chapter extends ChapterInput {
   _id: string;
   status: 'locked' | 'current' | 'completed';
+  checklistItems: ChecklistItem[];
 }
 
 export interface LearningPlan {

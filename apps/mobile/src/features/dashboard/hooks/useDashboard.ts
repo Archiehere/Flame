@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HOBBY_LEVEL_OPTIONS, LearningPlan } from '../../onboarding/types';
-import { getActiveLearningPlans } from '../../../services/learningPlanApi';
+import { getActiveLearningPlans, removeLearningPlan } from '../../../services/learningPlanApi';
 import { CurrentUser, getCurrentUser } from '../../../services/userApi';
 
 export interface CourseSummary {
@@ -8,6 +8,7 @@ export interface CourseSummary {
   hobby: string;
   levelLabel: string;
   percentComplete: number;
+  currentChapterId: string | null;
   currentChapterTitle: string | null;
 }
 
@@ -30,6 +31,7 @@ function toCourseSummary(plan: LearningPlan): CourseSummary {
     hobby: plan.hobby,
     levelLabel,
     percentComplete: total > 0 ? Math.round((completed / total) * 100) : 0,
+    currentChapterId: currentChapter?._id ?? null,
     currentChapterTitle: currentChapter?.title ?? null,
   };
 }
@@ -65,5 +67,13 @@ export function useDashboard() {
     load();
   }, [load]);
 
-  return { ...state, reload: load };
+  const removeCourse = useCallback(async (planId: string) => {
+    await removeLearningPlan(planId);
+    setState((prev) => ({
+      ...prev,
+      courses: prev.courses.filter((course) => course.planId !== planId),
+    }));
+  }, []);
+
+  return { ...state, reload: load, removeCourse };
 }
