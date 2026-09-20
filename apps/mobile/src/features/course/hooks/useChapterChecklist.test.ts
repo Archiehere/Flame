@@ -1,11 +1,16 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { completeChapter, getChapterChecklist } from '../../../services/learningPlanApi';
+import {
+  completeChapter,
+  getChapterChecklist,
+  toggleChecklistItem,
+} from '../../../services/learningPlanApi';
 import { useChapterChecklist } from './useChapterChecklist';
 
 jest.mock('../../../services/learningPlanApi');
 
 const mockGetChapterChecklist = getChapterChecklist as jest.Mock;
 const mockCompleteChapter = completeChapter as jest.Mock;
+const mockToggleChecklistItem = toggleChecklistItem as jest.Mock;
 
 const plan = {
   _id: 'plan-1',
@@ -139,5 +144,39 @@ describe('useChapterChecklist', () => {
     expect(mockCompleteChapter).toHaveBeenCalledWith('plan-1', 'chapter-1');
     expect(result.current.chapter?.status).toBe('completed');
     expect(result.current.isCompleting).toBe(false);
+  });
+
+  describe('toggleItem', () => {
+    it('optimistically flips the item status and persists it', async () => {
+      mockGetChapterChecklist.mockResolvedValue({ plan, generating: false });
+      mockToggleChecklistItem.mockResolvedValue(plan);
+
+      const { result } = renderHook(() => useChapterChecklist('plan-1', 'chapter-1'));
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.chapter?.checklistItems[0]?.status).toBe('not_started');
+
+      await act(async () => {
+        await result.current.toggleItem('item-1');
+      });
+
+      expect(mockToggleChecklistItem).toHaveBeenCalledWith('plan-1', 'chapter-1', 'item-1');
+      expect(result.current.chapter?.checklistItems[0]?.status).toBe('mastered');
+    });
+
+    it('rolls back the optimistic update when the request fails', async () => {
+      mockGetChapterChecklist.mockResolvedValue({ plan, generating: false });
+      mockToggleChecklistItem.mockRejectedValue(new Error('network error'));
+
+      const { result } = renderHook(() => useChapterChecklist('plan-1', 'chapter-1'));
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await result.current.toggleItem('item-1');
+      });
+
+      expect(result.current.chapter?.checklistItems[0]?.status).toBe('not_started');
+    });
   });
 });

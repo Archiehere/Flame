@@ -66,6 +66,17 @@ export function completeChapter(planId: string, chapterId: string): Promise<Lear
   });
 }
 
+export function toggleChecklistItem(
+  planId: string,
+  chapterId: string,
+  itemId: string,
+): Promise<LearningPlan> {
+  return apiFetch<LearningPlan>(
+    `/learning-plans/${planId}/chapters/${chapterId}/items/${itemId}/toggle`,
+    { method: 'POST' },
+  );
+}
+
 export function removeLearningPlan(planId: string): Promise<{ deleted: true }> {
   return apiFetch<{ deleted: true }>(`/learning-plans/${planId}`, {
     method: 'DELETE',

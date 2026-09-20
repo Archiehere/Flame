@@ -1,11 +1,16 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { completeChapter, getChapterChecklist } from '../../../services/learningPlanApi';
+import {
+  completeChapter,
+  getChapterChecklist,
+  toggleChecklistItem,
+} from '../../../services/learningPlanApi';
 import { ChapterChecklistScreen } from './ChapterChecklistScreen';
 
 jest.mock('../../../services/learningPlanApi');
 
 const mockGetChapterChecklist = getChapterChecklist as jest.Mock;
 const mockCompleteChapter = completeChapter as jest.Mock;
+const mockToggleChecklistItem = toggleChecklistItem as jest.Mock;
 
 describe('ChapterChecklistScreen', () => {
   beforeEach(() => {
@@ -70,6 +75,50 @@ describe('ChapterChecklistScreen', () => {
 
     expect(await screen.findByText('Sit with a straight back.')).toBeTruthy();
     expect(screen.getByText('Rest the guitar on your leg.')).toBeTruthy();
+  });
+
+  it('marks a checklist item done via its checkbox without navigating away', async () => {
+    mockGetChapterChecklist.mockResolvedValue({
+      generating: false,
+      plan: {
+        _id: 'plan-1',
+        hobby: 'Guitar',
+        level: 'beginner',
+        targetDate: new Date().toISOString(),
+        status: 'active',
+        chapters: [
+          {
+            _id: 'chapter-1',
+            title: 'Basics',
+            description: 'Learn the basics',
+            order: 0,
+            timeEstimateDays: 2,
+            status: 'current',
+            checklistItems: [
+              {
+                _id: 'item-1',
+                title: 'Chord theory',
+                description: 'Why chords work',
+                modality: 'text',
+                required: false,
+                order: 0,
+                status: 'not_started',
+                textContent: 'A chord is built from stacked thirds.',
+              },
+            ],
+          },
+        ],
+      },
+    });
+    mockToggleChecklistItem.mockResolvedValue({});
+
+    render(<ChapterChecklistScreen planId="plan-1" chapterId="chapter-1" />);
+
+    const checkbox = await screen.findByLabelText('Mark as done');
+    fireEvent.press(checkbox);
+
+    expect(mockToggleChecklistItem).toHaveBeenCalledWith('plan-1', 'chapter-1', 'item-1');
+    expect(await screen.findByLabelText('Mark as not done')).toBeTruthy();
   });
 
   it('shows a preparing state while the checklist is generating, then the content once ready', async () => {

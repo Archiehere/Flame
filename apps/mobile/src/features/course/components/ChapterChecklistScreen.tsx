@@ -25,6 +25,7 @@ export function ChapterChecklistScreen({
     isCompleting,
     reload,
     markComplete,
+    toggleItem,
   } = useChapterChecklist(planId, chapterId);
   const router = useRouter();
 
@@ -82,7 +83,11 @@ export function ChapterChecklistScreen({
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.description}>{chapter.description}</Text>
             {chapter.checklistItems.map((item) => (
-              <ChecklistItemCard key={item._id} item={item} />
+              <ChecklistItemCard
+                key={item._id}
+                item={item}
+                onToggle={() => toggleItem(item._id)}
+              />
             ))}
 
             <View style={styles.completionSection}>

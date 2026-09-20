@@ -19,7 +19,7 @@ describe('StreakScreen', () => {
 
     render(<StreakScreen />);
 
-    expect(await screen.findByText('5')).toBeTruthy();
+    expect(await screen.findByTestId('streakCount')).toHaveTextContent('5');
     expect(screen.getByText('day streak')).toBeTruthy();
     expect(screen.getByText("You're on a roll — keep it going!")).toBeTruthy();
   });
@@ -29,7 +29,7 @@ describe('StreakScreen', () => {
 
     render(<StreakScreen />);
 
-    expect(await screen.findByText('0')).toBeTruthy();
+    expect(await screen.findByTestId('streakCount')).toHaveTextContent('0');
     expect(
       screen.getByText('Your streak reset. Finish a lesson today to start a new one.'),
     ).toBeTruthy();

@@ -1,4 +1,4 @@
-import { buildStreakDays, toCumulativePoints, WeekDay } from './weekDays';
+import { buildMonthCalendar, buildStreakDays, toCumulativePoints, WeekDay } from './weekDays';
 
 describe('buildStreakDays', () => {
   it('fills only the most recent `currentStreak` days, ending today', () => {
@@ -57,5 +57,38 @@ describe('toCumulativePoints', () => {
     const { points } = toCumulativePoints(days);
 
     expect(points).toEqual([0, 1, 2]);
+  });
+});
+
+describe('buildMonthCalendar', () => {
+  it('marks the trailing streak days as filled, ending today', () => {
+    // Friday 2026-09-18
+    const friday = new Date('2026-09-18T12:00:00Z');
+
+    const calendar = buildMonthCalendar(3, friday);
+
+    expect(calendar.year).toBe(2026);
+    expect(calendar.month).toBe(8); // September, 0-indexed
+    expect(calendar.monthLabel).toBe('September');
+    expect(calendar.daysInMonth).toBe(30);
+    expect(calendar.todayDate).toBe(18);
+    expect(calendar.filledDates).toEqual(new Set([18, 17, 16]));
+  });
+
+  it('clips the streak at the start of the month rather than spilling into the previous month', () => {
+    // 2026-09-02, streak of 5 would otherwise reach back to August 29
+    const earlyMonth = new Date('2026-09-02T12:00:00Z');
+
+    const calendar = buildMonthCalendar(5, earlyMonth);
+
+    expect(calendar.filledDates).toEqual(new Set([2, 1]));
+  });
+
+  it('marks nothing as filled when there is no active streak', () => {
+    const friday = new Date('2026-09-18T12:00:00Z');
+
+    const calendar = buildMonthCalendar(0, friday);
+
+    expect(calendar.filledDates.size).toBe(0);
   });
 });

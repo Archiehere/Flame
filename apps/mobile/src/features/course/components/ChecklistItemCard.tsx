@@ -6,6 +6,7 @@ import { StepChecklist } from './StepChecklist';
 
 interface ChecklistItemCardProps {
   item: ChecklistItem;
+  onToggle: () => void;
 }
 
 const MODALITY_ICON: Record<ChecklistItem['modality'], string> = {
@@ -18,8 +19,9 @@ function openYoutubeVideo(videoId: string): void {
   Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`);
 }
 
-export function ChecklistItemCard({ item }: ChecklistItemCardProps): React.JSX.Element {
+export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
+  const isMastered = item.status === 'mastered';
 
   return (
     <Pressable
@@ -28,9 +30,19 @@ export function ChecklistItemCard({ item }: ChecklistItemCardProps): React.JSX.E
       style={styles.card}
     >
       <View style={styles.headerRow}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={isMastered ? 'Mark as not done' : 'Mark as done'}
+          accessibilityState={{ checked: isMastered }}
+          onPress={onToggle}
+          hitSlop={8}
+          style={[styles.checkbox, isMastered && styles.checkboxDone]}
+        >
+          {isMastered && <Text style={styles.checkboxMark}>✓</Text>}
+        </Pressable>
         <Text style={styles.icon}>{MODALITY_ICON[item.modality]}</Text>
         <View style={styles.headerText}>
-          <Text style={styles.title}>{item.title}</Text>
+          <Text style={[styles.title, isMastered && styles.titleDone]}>{item.title}</Text>
           <Text style={styles.description}>{item.description}</Text>
         </View>
         {item.required && (
@@ -87,6 +99,24 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
   },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.pill,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxDone: {
+    backgroundColor: colors.primary,
+  },
+  checkboxMark: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textOnPrimary,
+  },
   icon: {
     fontSize: 18,
   },
@@ -98,6 +128,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  titleDone: {
+    color: colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
   description: {
     fontSize: 13,

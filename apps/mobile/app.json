@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "mobile",
-    "slug": "mobile",
+    "slug": "flame-hobby-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.flame.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,7 +33,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiUrl": "https://dace-2401-4900-883a-e910-346e-492b-748f-cc89.ngrok-free.app"
+      "apiUrl": "https://dace-2401-4900-883a-e910-346e-492b-748f-cc89.ngrok-free.app",
+      "eas": {
+        "projectId": "8c4e5ad8-5dcb-44c4-a413-022ef8f2b0ce"
+      }
     }
   }
 }

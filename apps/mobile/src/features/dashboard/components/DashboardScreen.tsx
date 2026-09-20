@@ -46,7 +46,7 @@ export function DashboardScreen(): React.JSX.Element {
 
           <View style={styles.heading}>
             <Text style={styles.title}>Hi, ready to learn?</Text>
-            <Text style={styles.subtitle}>Continue your streak and progress learning</Text>
+            <Text style={styles.subtitle}>Continue streak and progress learning</Text>
           </View>
 
           <StreakTrackerCard currentStreak={user?.currentStreak ?? 0} />
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: fonts.regular,
     color: colors.textSecondary,
   },

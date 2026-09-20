@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { completeChapter, getChapterChecklist } from '../../../services/learningPlanApi';
+import {
+  completeChapter,
+  getChapterChecklist,
+  toggleChecklistItem,
+} from '../../../services/learningPlanApi';
 import { Chapter } from '../../onboarding/types';
 
 interface ChapterChecklistState {
@@ -112,5 +116,38 @@ export function useChapterChecklist(planId: string, chapterId: string) {
     }
   }, [planId, chapterId, load]);
 
-  return { ...state, isCompleting, reload: load, markComplete };
+  const toggleItem = useCallback(
+    async (itemId: string) => {
+      const previousChapter = state.chapter;
+      if (!previousChapter) {
+        return;
+      }
+
+      setState((prev) => {
+        if (!prev.chapter) {
+          return prev;
+        }
+        return {
+          ...prev,
+          chapter: {
+            ...prev.chapter,
+            checklistItems: prev.chapter.checklistItems.map((item) =>
+              item._id === itemId
+                ? { ...item, status: item.status === 'mastered' ? 'not_started' : 'mastered' }
+                : item,
+            ),
+          },
+        };
+      });
+
+      try {
+        await toggleChecklistItem(planId, chapterId, itemId);
+      } catch {
+        setState((prev) => ({ ...prev, chapter: previousChapter }));
+      }
+    },
+    [planId, chapterId, state.chapter],
+  );
+
+  return { ...state, isCompleting, reload: load, markComplete, toggleItem };
 }

@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBackground } from '../../../components/AppBackground';
-import { colors, radii, spacing } from '../../../theme/theme';
+import { colors, radii, shadow, spacing } from '../../../theme/theme';
 import { CurrentUser, getCurrentUser } from '../../../services/userApi';
 import { buildStreakDays, toCumulativePoints } from '../weekDays';
-import { DayTile } from './DayTile';
+import { MonthCalendar } from './MonthCalendar';
 import { StreakPointsChart } from './StreakPointsChart';
 
 export function StreakScreen(): React.JSX.Element {
@@ -69,7 +69,9 @@ export function StreakScreen(): React.JSX.Element {
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.pointsSection}>
-              <Text style={styles.streakCount}>{currentStreak}</Text>
+              <Text testID="streakCount" style={styles.streakCount}>
+                {currentStreak}
+              </Text>
               <Text style={styles.streakLabel}>day streak</Text>
               <Text style={styles.streakSubtext}>
                 {isOnTrack
@@ -79,13 +81,8 @@ export function StreakScreen(): React.JSX.Element {
               <StreakPointsChart labels={labels} points={points} />
             </View>
 
-            <View style={styles.weekSection}>
-              <Text style={styles.sectionTitle}>Last 7 days</Text>
-              <View style={[styles.weekCard, styles.weekCardContent]}>
-                {weekDays.map((day, index) => (
-                  <DayTile key={index} dayLetter={day.dayLetter} state={day.state} />
-                ))}
-              </View>
+            <View style={styles.weekCard}>
+              <MonthCalendar currentStreak={currentStreak} />
             </View>
           </ScrollView>
         )}
@@ -156,25 +153,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingHorizontal: spacing.xl,
   },
-  weekSection: {
-    width: '96%',
-    gap: spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
   weekCard: {
-    backgroundColor: colors.cardDark,
+    width: '100%',
+    backgroundColor: colors.surface,
     borderRadius: radii.md + 4,
-    padding: spacing.sm,
-  },
-  weekCardContent: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    rowGap: spacing.sm,
-    columnGap: spacing.sm,
+    padding: spacing.lg,
+    ...shadow,
   },
 });
