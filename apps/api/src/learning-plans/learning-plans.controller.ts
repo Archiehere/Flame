@@ -21,7 +21,7 @@ export class LearningPlansController {
 
   @Get(':id')
   findOne(@DeviceId() deviceId: string, @Param('id') id: string) {
-    return this.learningPlansService.findOne(deviceId, id);
+    return this.learningPlansService.getForAccess(deviceId, id);
   }
 
   @Patch(':id/chapters')
@@ -45,6 +45,25 @@ export class LearningPlansController {
   @Post(':id/approve')
   approve(@DeviceId() deviceId: string, @Param('id') id: string) {
     return this.learningPlansService.approve(deviceId, id);
+  }
+
+  @Post(':id/chapters/:chapterId/complete')
+  completeChapter(
+    @DeviceId() deviceId: string,
+    @Param('id') id: string,
+    @Param('chapterId') chapterId: string,
+  ) {
+    return this.learningPlansService.completeChapter(deviceId, id, chapterId);
+  }
+
+  @Post(':id/chapters/:chapterId/items/:itemId/toggle')
+  toggleChecklistItem(
+    @DeviceId() deviceId: string,
+    @Param('id') id: string,
+    @Param('chapterId') chapterId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.learningPlansService.toggleChecklistItem(deviceId, id, chapterId, itemId);
   }
 
   @Delete(':id')

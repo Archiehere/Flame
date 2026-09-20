@@ -65,4 +65,61 @@ describe('UsersService', () => {
       expect(result).toBe(existing);
     });
   });
+
+  describe('recordActivity', () => {
+    function userWithLastActive(lastActiveDate: Date | null, currentStreak = 0) {
+      return {
+        deviceId: 'abc',
+        currentStreak,
+        lastActiveDate,
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+    }
+
+    it('starts a streak of 1 on first-ever activity', async () => {
+      const user = userWithLastActive(null, 0);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc');
+
+      expect(result.currentStreak).toBe(1);
+      expect(result.lastActiveDate).toBeInstanceOf(Date);
+      expect(user.save).toHaveBeenCalled();
+    });
+
+    it('increments the streak when the user was also active yesterday', async () => {
+      const yesterday = new Date();
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      const user = userWithLastActive(yesterday, 4);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc');
+
+      expect(result.currentStreak).toBe(5);
+    });
+
+    it('resets the streak to 1 when there is a gap since the last activity', async () => {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setUTCDate(threeDaysAgo.getUTCDate() - 3);
+      const user = userWithLastActive(threeDaysAgo, 10);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc');
+
+      expect(result.currentStreak).toBe(1);
+    });
+
+    it('is a no-op when activity was already recorded today', async () => {
+      const today = new Date();
+      const user = userWithLastActive(today, 7);
+      findOne.mockResolvedValue(user);
+
+      const result = await service.recordActivity('abc');
+
+      expect(result.currentStreak).toBe(7);
+      expect(user.save).not.toHaveBeenCalled();
+    });
+  });
 });

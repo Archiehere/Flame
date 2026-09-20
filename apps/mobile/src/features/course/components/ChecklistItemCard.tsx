@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import WebView from 'react-native-webview';
+import { Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, shadow, spacing } from '../../../theme/theme';
 import { ChecklistItem } from '../../onboarding/types';
+import { StepChecklist } from './StepChecklist';
 
 interface ChecklistItemCardProps {
   item: ChecklistItem;
@@ -14,27 +14,8 @@ const MODALITY_ICON: Record<ChecklistItem['modality'], string> = {
   both: '📄🎥',
 };
 
-function buildYoutubeEmbedHtml(videoId: string): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-        <style>
-          html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
-          iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
-        </style>
-      </head>
-      <body>
-        <iframe
-          src="https://www.youtube.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0"
-          frameborder="0"
-          allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen
-        ></iframe>
-      </body>
-    </html>
-  `;
+function openYoutubeVideo(videoId: string): void {
+  Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`);
 }
 
 export function ChecklistItemCard({ item }: ChecklistItemCardProps): React.JSX.Element {
@@ -62,26 +43,29 @@ export function ChecklistItemCard({ item }: ChecklistItemCardProps): React.JSX.E
       {expanded && (
         <View style={styles.content}>
           {item.youtubeVideoId && (
-            <View style={styles.videoContainer}>
-              <WebView
-                source={{
-                  html: buildYoutubeEmbedHtml(item.youtubeVideoId),
-                  baseUrl: 'https://www.youtube.com',
-                }}
-                originWhitelist={['*']}
-                javaScriptEnabled
-                domStorageEnabled
-                allowsInlineMediaPlayback
-                mediaPlaybackRequiresUserAction={false}
-                allowsFullscreenVideo
-                thirdPartyCookiesEnabled
-                sharedCookiesEnabled
-                userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
-                style={styles.video}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Watch video on YouTube"
+              onPress={() => openYoutubeVideo(item.youtubeVideoId ?? '')}
+              style={styles.videoContainer}
+            >
+              <Image
+                source={{ uri: `https://img.youtube.com/vi/${item.youtubeVideoId}/hqdefault.jpg` }}
+                style={styles.videoThumbnail}
               />
-            </View>
+              <View style={styles.playOverlay}>
+                <Text style={styles.playIcon}>▶</Text>
+              </View>
+              <View style={styles.watchBadge}>
+                <Text style={styles.watchBadgeText}>Watch on YouTube</Text>
+              </View>
+            </Pressable>
           )}
-          {item.textContent && <Text style={styles.textContent}>{item.textContent}</Text>}
+          {item.steps && item.steps.length > 0 ? (
+            <StepChecklist steps={item.steps} />
+          ) : (
+            item.textContent && <Text style={styles.textContent}>{item.textContent}</Text>
+          )}
         </View>
       )}
     </Pressable>
@@ -139,9 +123,39 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: radii.sm,
     overflow: 'hidden',
+    backgroundColor: colors.border,
   },
-  video: {
-    flex: 1,
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
+  playIcon: {
+    fontSize: 32,
+    color: colors.surface,
+  },
+  watchBadge: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: radii.pill,
+    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+  },
+  watchBadgeText: {
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: '700',
   },
   textContent: {
     fontSize: 14,

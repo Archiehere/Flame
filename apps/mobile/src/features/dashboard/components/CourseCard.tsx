@@ -15,12 +15,7 @@ export function CourseCard({ course, onRemove }: CourseCardProps): React.JSX.Ele
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={!course.currentChapterId}
-      onPress={() => {
-        if (course.currentChapterId) {
-          router.push(`/chapter/${course.planId}/${course.currentChapterId}`);
-        }
-      }}
+      onPress={() => router.push(`/course/${course.planId}`)}
       style={styles.card}
     >
       <Pressable

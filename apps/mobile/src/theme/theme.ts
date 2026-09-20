@@ -16,6 +16,14 @@ export const colors = {
   pillDark: '#231F3D',
 } as const;
 
+export const fonts = {
+  regular: 'Poppins_400Regular',
+  medium: 'Poppins_500Medium',
+  semiBold: 'Poppins_600SemiBold',
+  bold: 'Poppins_700Bold',
+  extraBold: 'Poppins_800ExtraBold',
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,

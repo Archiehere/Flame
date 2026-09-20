@@ -2,30 +2,29 @@ import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBackground } from '../../../components/AppBackground';
+import { getHobbyIcon } from '../../dashboard/hobbyIcons';
 import { PillButton } from '../../dashboard/components/PillButton';
 import { colors, radii, spacing } from '../../../theme/theme';
-import { useChapterChecklist } from '../hooks/useChapterChecklist';
-import { ChecklistItemCard } from './ChecklistItemCard';
+import { Chapter } from '../../onboarding/types';
+import { useCourseDetail } from '../hooks/useCourseDetail';
+import { ChapterListItem } from './ChapterListItem';
+import { CourseProgressRing } from './CourseProgressRing';
 
-interface ChapterChecklistScreenProps {
+interface CourseDetailScreenProps {
   planId: string;
-  chapterId: string;
 }
 
-export function ChapterChecklistScreen({
-  planId,
-  chapterId,
-}: ChapterChecklistScreenProps): React.JSX.Element {
-  const {
-    isLoading,
-    isGenerating,
-    chapter,
-    nextChapterId,
-    errorMessage,
-    isCompleting,
-    reload,
-    markComplete,
-  } = useChapterChecklist(planId, chapterId);
+function findResumeChapter(chapters: Chapter[]): Chapter | null {
+  return (
+    chapters.find((c) => c.status === 'current') ??
+    chapters.find((c) => c.status !== 'locked') ??
+    chapters[0] ??
+    null
+  );
+}
+
+export function CourseDetailScreen({ planId }: CourseDetailScreenProps): React.JSX.Element {
+  const { isLoading, plan, errorMessage, reload } = useCourseDetail(planId);
   const router = useRouter();
 
   let canGoBack = false;
@@ -34,6 +33,11 @@ export function ChapterChecklistScreen({
   } catch {
     // Navigation state isn't ready yet — treat as no back target.
   }
+
+  const totalCount = plan?.chapters.length ?? 0;
+  const completedCount = plan?.chapters.filter((c) => c.status === 'completed').length ?? 0;
+  const percentComplete = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const resumeChapter = plan ? findResumeChapter(plan.chapters) : null;
 
   return (
     <AppBackground>
@@ -51,7 +55,7 @@ export function ChapterChecklistScreen({
             </Pressable>
           )}
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {chapter?.title ?? 'Chapter'}
+            {plan ? `Learning ${plan.hobby}` : 'Course'}
           </Text>
         </View>
 
@@ -70,41 +74,38 @@ export function ChapterChecklistScreen({
           </View>
         )}
 
-        {!isLoading && !errorMessage && isGenerating && (
-          <View style={styles.centered}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={styles.preparingText}>Preparing your lesson…</Text>
-            <Text style={styles.preparingSubtext}>This can take up to a minute.</Text>
-          </View>
-        )}
-
-        {!isLoading && !errorMessage && !isGenerating && chapter && (
+        {!isLoading && !errorMessage && plan && (
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.description}>{chapter.description}</Text>
-            {chapter.checklistItems.map((item) => (
-              <ChecklistItemCard key={item._id} item={item} />
-            ))}
+            <View style={styles.progressSection}>
+              <Text style={styles.hobbyIcon}>{getHobbyIcon(plan.hobby)}</Text>
+              <CourseProgressRing
+                percentComplete={percentComplete}
+                completedCount={completedCount}
+                totalCount={totalCount}
+              />
+            </View>
 
-            <View style={styles.completionSection}>
-              {chapter.status === 'completed' ? (
-                <>
-                  <View style={styles.completedBadge}>
-                    <Text style={styles.completedBadgeText}>✓ Chapter completed</Text>
-                  </View>
-                  {nextChapterId && (
-                    <PillButton
-                      label="Continue to next chapter"
-                      onPress={() => router.replace(`/chapter/${planId}/${nextChapterId}`)}
-                    />
-                  )}
-                </>
-              ) : (
-                <PillButton
-                  label={isCompleting ? 'Marking complete…' : 'Mark chapter as completed'}
-                  onPress={markComplete}
-                  disabled={isCompleting}
+            {resumeChapter && (
+              <PillButton
+                label={
+                  completedCount === totalCount && totalCount > 0
+                    ? 'Review course'
+                    : `Resume: ${resumeChapter.title}`
+                }
+                onPress={() => router.push(`/chapter/${planId}/${resumeChapter._id}`)}
+              />
+            )}
+
+            <View style={styles.chapterList}>
+              <Text style={styles.sectionTitle}>Chapters</Text>
+              {plan.chapters.map((chapter, index) => (
+                <ChapterListItem
+                  key={chapter._id}
+                  chapter={chapter}
+                  index={index}
+                  onPress={() => router.push(`/chapter/${planId}/${chapter._id}`)}
                 />
-              )}
+              ))}
             </View>
           </ScrollView>
         )}
@@ -158,38 +159,24 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  preparingText: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  preparingSubtext: {
-    color: colors.textSecondary,
-    fontSize: 13,
-  },
   content: {
     padding: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.lg,
   },
-  description: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: spacing.xs,
-  },
-  completionSection: {
-    marginTop: spacing.md,
-    gap: spacing.md,
-  },
-  completedBadge: {
+  progressSection: {
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.userBubble,
+    gap: spacing.sm,
   },
-  completedBadgeText: {
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 14,
+  hobbyIcon: {
+    fontSize: 36,
+  },
+  chapterList: {
+    gap: spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
 });

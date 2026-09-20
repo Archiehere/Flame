@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { GroqService } from '../groq/groq.service.js';
@@ -16,8 +16,19 @@ import { Chapter } from './schemas/chapter.schema.js';
 import { ChecklistItem } from './schemas/checklist-item.schema.js';
 import { LearningPlan, LearningPlanDocument } from './schemas/learning-plan.schema.js';
 
+export interface ChapterChecklistResult {
+  plan: LearningPlanDocument;
+  generating: boolean;
+}
+
 @Injectable()
 export class LearningPlansService {
+  private readonly logger = new Logger(LearningPlansService.name);
+  // Tracks chapters currently being generated in the background, keyed by
+  // "planId:chapterId", so concurrent requests for the same chapter don't
+  // each kick off their own duplicate generation.
+  private readonly generatingChapters = new Set<string>();
+
   constructor(
     @InjectModel(LearningPlan.name) private readonly planModel: Model<LearningPlanDocument>,
     private readonly usersService: UsersService,
@@ -59,6 +70,18 @@ export class LearningPlansService {
     if (!plan) {
       throw new NotFoundException(`Learning plan ${planId} not found`);
     }
+    return plan;
+  }
+
+  /**
+   * Same as findOne, but also records the day's streak activity. Used only
+   * by the "open a course" route — findOne itself stays a plain read so it
+   * can be reused internally (approve, completeChapter, etc.) without every
+   * internal fetch counting as the user "accessing" a course.
+   */
+  async getForAccess(deviceId: string, planId: string): Promise<LearningPlanDocument> {
+    const plan = await this.findOne(deviceId, planId);
+    await this.usersService.recordActivity(deviceId);
     return plan;
   }
 
@@ -107,18 +130,51 @@ export class LearningPlansService {
     return plan.save();
   }
 
+  /**
+   * Returns the chapter's checklist immediately if it already exists.
+   * Otherwise kicks off generation in the background (an LLM call plus
+   * video lookups that can take well past a client's fetch timeout) and
+   * returns right away with `generating: true` — the caller is expected to
+   * poll this endpoint again shortly instead of the request blocking on the
+   * full generation.
+   */
   async getChapterChecklist(
     deviceId: string,
     planId: string,
     chapterId: string,
-  ): Promise<LearningPlanDocument> {
+  ): Promise<ChapterChecklistResult> {
     const plan = await this.findOne(deviceId, planId);
     const chapter = plan.chapters.id(chapterId);
     if (!chapter) {
       throw new NotFoundException(`Chapter ${chapterId} not found`);
     }
 
-    if (chapter.checklistItems.length === 0) {
+    if (chapter.checklistItems.length > 0) {
+      return { plan, generating: false };
+    }
+
+    const key = `${planId}:${chapterId}`;
+    if (!this.generatingChapters.has(key)) {
+      this.generatingChapters.add(key);
+      void this.generateChecklistInBackground(deviceId, planId, chapterId, key);
+    }
+
+    return { plan, generating: true };
+  }
+
+  private async generateChecklistInBackground(
+    deviceId: string,
+    planId: string,
+    chapterId: string,
+    key: string,
+  ): Promise<void> {
+    try {
+      const plan = await this.findOne(deviceId, planId);
+      const chapter = plan.chapters.id(chapterId);
+      if (!chapter || chapter.checklistItems.length > 0) {
+        return;
+      }
+
       const generatedItems = await this.groqService.generateChecklistItems({
         hobby: plan.hobby,
         level: plan.level,
@@ -141,6 +197,7 @@ export class LearningPlansService {
             order: item.order,
             status: ChecklistItemStatus.NOT_STARTED,
             textContent: item.textContent,
+            steps: item.steps,
             youtubeVideoId,
           };
         }),
@@ -148,9 +205,69 @@ export class LearningPlansService {
       chapter.checklistItems = items as unknown as ChecklistItem[];
 
       await plan.save();
+    } catch (error) {
+      this.logger.warn(`Background checklist generation failed for ${key}: ${String(error)}`);
+    } finally {
+      this.generatingChapters.delete(key);
+    }
+  }
+
+  /**
+   * Toggles a single checklist item between mastered and not-started. This
+   * is the per-item completion persistence — separate from completeChapter,
+   * which marks the whole chapter done regardless of individual item state.
+   */
+  async toggleChecklistItem(
+    deviceId: string,
+    planId: string,
+    chapterId: string,
+    itemId: string,
+  ): Promise<LearningPlanDocument> {
+    const plan = await this.findOne(deviceId, planId);
+    const chapter = plan.chapters.id(chapterId);
+    if (!chapter) {
+      throw new NotFoundException(`Chapter ${chapterId} not found`);
     }
 
-    return plan;
+    const item = (
+      chapter.checklistItems as unknown as Types.DocumentArray<ChecklistItem>
+    ).id(itemId);
+    if (!item) {
+      throw new NotFoundException(`Checklist item ${itemId} not found`);
+    }
+
+    item.status =
+      item.status === ChecklistItemStatus.MASTERED
+        ? ChecklistItemStatus.NOT_STARTED
+        : ChecklistItemStatus.MASTERED;
+
+    return plan.save();
+  }
+
+  async completeChapter(
+    deviceId: string,
+    planId: string,
+    chapterId: string,
+  ): Promise<LearningPlanDocument> {
+    const plan = await this.findOne(deviceId, planId);
+    const chapter = plan.chapters.id(chapterId);
+    if (!chapter) {
+      throw new NotFoundException(`Chapter ${chapterId} not found`);
+    }
+
+    chapter.status = ChapterStatus.COMPLETED;
+
+    const index = plan.chapters.indexOf(chapter);
+    const nextChapter = plan.chapters[index + 1];
+    if (nextChapter) {
+      if (nextChapter.status === ChapterStatus.LOCKED) {
+        nextChapter.status = ChapterStatus.CURRENT;
+      }
+    } else {
+      plan.status = LearningPlanStatus.COMPLETED;
+    }
+
+    return plan.save();
   }
 
   async remove(deviceId: string, planId: string): Promise<{ deleted: true }> {

@@ -8,10 +8,11 @@ export const checklistItemSchema = z
     required: z.boolean(),
     order: z.number().int().nonnegative(),
     textContent: z.string().min(1).optional(),
+    steps: z.array(z.string().min(1)).min(2).optional(),
     videoSearchQuery: z.string().min(1).optional(),
   })
-  .refine((item) => item.modality === 'video' || !!item.textContent, {
-    message: 'textContent is required for text/both modality items',
+  .refine((item) => item.modality === 'video' || !!item.textContent || !!item.steps, {
+    message: 'textContent or steps is required for text/both modality items',
   })
   .refine((item) => item.modality === 'text' || !!item.videoSearchQuery, {
     message: 'videoSearchQuery is required for video/both modality items',

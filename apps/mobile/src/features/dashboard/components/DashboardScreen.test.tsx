@@ -5,6 +5,10 @@ import { DashboardScreen } from './DashboardScreen';
 
 jest.mock('../../../services/learningPlanApi');
 jest.mock('../../../services/userApi');
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => false }),
+  useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
+}));
 
 const mockGetActiveLearningPlans = getActiveLearningPlans as jest.Mock;
 const mockGetCurrentUser = getCurrentUser as jest.Mock;

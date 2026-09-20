@@ -42,8 +42,28 @@ export function getActiveLearningPlans(): Promise<LearningPlan[]> {
   return apiFetch<LearningPlan[]>('/learning-plans/active');
 }
 
-export function getChapterChecklist(planId: string, chapterId: string): Promise<LearningPlan> {
-  return apiFetch<LearningPlan>(`/learning-plans/${planId}/chapters/${chapterId}/checklist`);
+export function getLearningPlan(planId: string): Promise<LearningPlan> {
+  return apiFetch<LearningPlan>(`/learning-plans/${planId}`);
+}
+
+export interface ChapterChecklistResponse {
+  plan: LearningPlan;
+  generating: boolean;
+}
+
+export function getChapterChecklist(
+  planId: string,
+  chapterId: string,
+): Promise<ChapterChecklistResponse> {
+  return apiFetch<ChapterChecklistResponse>(
+    `/learning-plans/${planId}/chapters/${chapterId}/checklist`,
+  );
+}
+
+export function completeChapter(planId: string, chapterId: string): Promise<LearningPlan> {
+  return apiFetch<LearningPlan>(`/learning-plans/${planId}/chapters/${chapterId}/complete`, {
+    method: 'POST',
+  });
 }
 
 export function removeLearningPlan(planId: string): Promise<{ deleted: true }> {

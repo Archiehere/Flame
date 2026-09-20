@@ -1,18 +1,17 @@
-import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBackground } from '../../../components/AppBackground';
-import { colors, spacing } from '../../../theme/theme';
+import { colors, fonts, spacing } from '../../../theme/theme';
 import { PillButton } from './PillButton';
 import { useDashboard } from '../hooks/useDashboard';
-import { LevelUpModal } from './LevelUpModal';
+import { FeaturedCoursesSection } from './FeaturedCoursesSection';
 import { OngoingCourseSection } from './OngoingCourseSection';
 import { ProfileHeader } from './ProfileHeader';
 import { StreakTrackerCard } from './StreakTrackerCard';
 
 export function DashboardScreen(): React.JSX.Element {
-  const { isLoading, user, courses, errorMessage, reload, removeCourse } = useDashboard();
-  const [rewardModalVisible, setRewardModalVisible] = useState(false);
+  const { isLoading, user, courses, errorMessage, reload, removeCourse, addFeaturedCourse } =
+    useDashboard();
 
   if (isLoading) {
     return (
@@ -42,6 +41,7 @@ export function DashboardScreen(): React.JSX.Element {
           <ProfileHeader
             name={user?.name ?? 'there'}
             levelLabel={courses[0]?.levelLabel ?? 'Beginner'}
+            streakPoints={user?.currentStreak ?? 0}
           />
 
           <View style={styles.heading}>
@@ -49,12 +49,12 @@ export function DashboardScreen(): React.JSX.Element {
             <Text style={styles.subtitle}>Continue your streak and progress learning</Text>
           </View>
 
-          <StreakTrackerCard onPressReward={() => setRewardModalVisible(true)} />
+          <StreakTrackerCard currentStreak={user?.currentStreak ?? 0} />
 
           <OngoingCourseSection courses={courses} onRemoveCourse={removeCourse} />
-        </ScrollView>
 
-        <LevelUpModal visible={rewardModalVisible} onClose={() => setRewardModalVisible(false)} />
+          <FeaturedCoursesSection courses={courses} onAddCourse={addFeaturedCourse} />
+        </ScrollView>
       </SafeAreaView>
     </AppBackground>
   );
@@ -88,12 +88,13 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 32,
+    fontFamily: fonts.medium,
     color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: colors.textSecondary,
   },
 });

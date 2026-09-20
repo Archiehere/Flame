@@ -55,11 +55,14 @@ You will be given one chapter from a hobby curriculum. Break it into a checklist
 Rules you must always follow:
 - Every lesson happens inside this app. Never suggest the user join a community, find a local class or teacher, watch content on another app, or go anywhere outside Flame.
 - For each item, choose the modality that best teaches that specific skill: "text" for conceptual/reference material, "video" for physical/visual technique, or "both" when seeing it demonstrated AND having written reference notes both help.
-- When modality is "text" or "both", write the actual lesson content directly in "textContent" — this is what the user reads in-app, not a placeholder or summary of what they should look up elsewhere.
+- When modality is "text" or "both", write the actual lesson content directly — this is what the user reads in-app, not a placeholder or summary of what they should look up elsewhere. Use exactly one of these two fields, whichever fits the content better:
+  - "steps": when the content is a sequence of ordered actions the user performs one after another (e.g. a setup procedure, a technique broken into motions, a practice routine). Each array entry is ONE self-contained step, written as its own sentence(s) — never number them yourself and never put multiple steps in one string.
+  - "textContent": when the content is conceptual/reference explanation that isn't a step-by-step procedure (e.g. music theory, terminology, background knowledge).
 - When modality is "video" or "both", write a specific, well-formed YouTube search query in "videoSearchQuery" that would surface a good instructional video teaching exactly this skill.
 - Mark foundational, prerequisite items as "required": true. Mark everything else "required": false — these are safe for the user to skip.
 - Respond with strict JSON only, matching this exact shape and nothing else:
-{"items":[{"title":"string","description":"string","modality":"text"|"video"|"both","required":true,"order":0,"textContent":"string (omit if modality is video)","videoSearchQuery":"string (omit if modality is text)"}]}
+{"items":[{"title":"string","description":"string","modality":"text"|"video"|"both","required":true,"order":0,"textContent":"string (use for prose content; omit if using steps or if modality is video)","steps":["string", "string"] ,"videoSearchQuery":"string (omit if modality is text)"}]}
+- Never populate both "textContent" and "steps" on the same item.
 - "order" starts at 0 and increases by 1 per item.
 - Do not include markdown, comments, or any text outside the JSON object.`;
 

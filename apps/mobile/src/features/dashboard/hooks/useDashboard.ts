@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { HOBBY_LEVEL_OPTIONS, LearningPlan } from '../../onboarding/types';
-import { getActiveLearningPlans, removeLearningPlan } from '../../../services/learningPlanApi';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { HOBBY_LEVEL_OPTIONS, HobbyLevel, LearningPlan } from '../../onboarding/types';
+import {
+  approveLearningPlan,
+  createLearningPlan,
+  getActiveLearningPlans,
+  removeLearningPlan,
+} from '../../../services/learningPlanApi';
 import { CurrentUser, getCurrentUser } from '../../../services/userApi';
+import { defaultFeaturedTargetDate } from '../featuredCourses';
 
 export interface CourseSummary {
   planId: string;
@@ -44,10 +51,13 @@ export function useDashboard() {
     errorMessage: null,
   });
 
+  const hasLoadedOnce = useRef(false);
+
   const load = useCallback(async () => {
-    setState((prev) => ({ ...prev, isLoading: true, errorMessage: null }));
+    setState((prev) => ({ ...prev, isLoading: !hasLoadedOnce.current, errorMessage: null }));
     try {
       const [user, plans] = await Promise.all([getCurrentUser(), getActiveLearningPlans()]);
+      hasLoadedOnce.current = true;
       setState({
         isLoading: false,
         user,
@@ -63,9 +73,11 @@ export function useDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const removeCourse = useCallback(async (planId: string) => {
     await removeLearningPlan(planId);
@@ -75,5 +87,18 @@ export function useDashboard() {
     }));
   }, []);
 
-  return { ...state, reload: load, removeCourse };
+  const addFeaturedCourse = useCallback(
+    async (hobby: string, level: HobbyLevel) => {
+      const plan = await createLearningPlan({
+        hobby,
+        level,
+        targetDate: defaultFeaturedTargetDate(),
+      });
+      await approveLearningPlan(plan._id);
+      await load();
+    },
+    [load],
+  );
+
+  return { ...state, reload: load, removeCourse, addFeaturedCourse };
 }

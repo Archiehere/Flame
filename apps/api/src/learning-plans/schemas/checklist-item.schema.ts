@@ -29,6 +29,9 @@ export class ChecklistItem {
   @Prop()
   textContent?: string;
 
+  @Prop({ type: [String] })
+  steps?: string[];
+
   @Prop()
   youtubeVideoId?: string;
 }

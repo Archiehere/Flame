@@ -1,12 +1,20 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../../theme/theme';
+import { FireIcon } from './FireIcon';
 
 interface ProfileHeaderProps {
   name: string;
   levelLabel: string;
+  streakPoints: number;
 }
 
-export function ProfileHeader({ name, levelLabel }: ProfileHeaderProps): React.JSX.Element {
+export function ProfileHeader({
+  name,
+  levelLabel,
+  streakPoints,
+}: ProfileHeaderProps): React.JSX.Element {
+  const router = useRouter();
   const initial = name.trim().charAt(0).toUpperCase() || '🔥';
 
   return (
@@ -30,11 +38,12 @@ export function ProfileHeader({ name, levelLabel }: ProfileHeaderProps): React.J
       <View style={styles.actions}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Rewards"
-          style={styles.iconButton}
-          onPress={() => Alert.alert('Coming soon', 'Rewards are on the way!')}
+          accessibilityLabel="View streak"
+          style={styles.streakPill}
+          onPress={() => router.push('/streak')}
         >
-          <Text style={styles.iconText}>👑</Text>
+          <Text style={styles.streakPoints}>{streakPoints}</Text>
+          <FireIcon size={18} color={colors.streak} />
         </Pressable>
       </View>
     </View>
@@ -100,17 +109,21 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
-  iconButton: {
-    width: 40,
+  streakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     height: 40,
+    paddingHorizontal: spacing.md,
     borderRadius: radii.pill,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  iconText: {
-    fontSize: 16,
+  streakPoints: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.textPrimary,
   },
 });

@@ -167,6 +167,35 @@ describe('GroqService', () => {
       expect(items[1]?.textContent).toContain('stacked thirds');
     });
 
+    it('accepts a step-structured text item using the steps field', async () => {
+      createMock.mockResolvedValue(
+        completionWith(
+          JSON.stringify({
+            items: [
+              {
+                title: 'Sitting posture',
+                description: 'How to sit while playing',
+                modality: 'text',
+                required: true,
+                order: 0,
+                steps: [
+                  'Sit or stand with a straight back.',
+                  'Place the guitar body against your torso.',
+                  'Rest your fretting hand thumb behind the neck.',
+                ],
+              },
+            ],
+          }),
+        ),
+      );
+
+      const items = await service.generateChecklistItems(input);
+
+      expect(items).toHaveLength(1);
+      expect(items[0]?.steps).toHaveLength(3);
+      expect(items[0]?.textContent).toBeUndefined();
+    });
+
     it('throws when a video item is missing videoSearchQuery', async () => {
       createMock.mockResolvedValue(
         completionWith(

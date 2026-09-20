@@ -21,6 +21,12 @@ function withChapterLookup<T extends { _id: string }>(chapters: T[]) {
   });
 }
 
+function withItemLookup<T extends { _id: string }>(items: T[]) {
+  return Object.assign(items, {
+    id: (itemId: string) => items.find((i) => i._id === itemId) ?? null,
+  });
+}
+
 describe('LearningPlansService', () => {
   let service: LearningPlansService;
   let planModel: {
@@ -28,7 +34,10 @@ describe('LearningPlansService', () => {
     findOne: ReturnType<typeof vi.fn>;
     find: ReturnType<typeof vi.fn>;
   };
-  let usersService: { findOrCreateByDeviceId: ReturnType<typeof vi.fn> };
+  let usersService: {
+    findOrCreateByDeviceId: ReturnType<typeof vi.fn>;
+    recordActivity: ReturnType<typeof vi.fn>;
+  };
   let groqService: {
     generateSyllabus: ReturnType<typeof vi.fn>;
     reviseSyllabus: ReturnType<typeof vi.fn>;
@@ -40,7 +49,10 @@ describe('LearningPlansService', () => {
 
   beforeEach(async () => {
     planModel = { create: vi.fn(), findOne: vi.fn(), find: vi.fn() };
-    usersService = { findOrCreateByDeviceId: vi.fn().mockResolvedValue({ _id: userId }) };
+    usersService = {
+      findOrCreateByDeviceId: vi.fn().mockResolvedValue({ _id: userId }),
+      recordActivity: vi.fn(),
+    };
     groqService = {
       generateSyllabus: vi.fn().mockResolvedValue([
         { title: 'Basics', description: 'Learn the basics', order: 0, timeEstimateDays: 2 },
@@ -103,6 +115,25 @@ describe('LearningPlansService', () => {
       planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(null) });
 
       await expect(service.findOne('device-1', 'missing')).rejects.toThrow('not found');
+    });
+  });
+
+  describe('getForAccess', () => {
+    it('returns the plan and records the day as active', async () => {
+      const plan = { id: 'plan-1', userId };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      const result = await service.getForAccess('device-1', 'plan-1');
+
+      expect(result).toBe(plan);
+      expect(usersService.recordActivity).toHaveBeenCalledWith('device-1');
+    });
+
+    it('does not record activity when the plan is not found', async () => {
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(null) });
+
+      await expect(service.getForAccess('device-1', 'missing')).rejects.toThrow('not found');
+      expect(usersService.recordActivity).not.toHaveBeenCalled();
     });
   });
 
@@ -208,7 +239,7 @@ describe('LearningPlansService', () => {
   });
 
   describe('getChapterChecklist', () => {
-    it('generates and persists checklist items when none exist yet', async () => {
+    it('kicks off background generation and returns immediately with generating:true', async () => {
       const chapter = {
         _id: 'chapter-1',
         title: 'Basics',
@@ -226,7 +257,44 @@ describe('LearningPlansService', () => {
         }),
       };
       planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+      groqService.generateChecklistItems.mockResolvedValue([
+        {
+          title: 'E minor chord',
+          description: 'Learn the shape',
+          modality: 'video',
+          required: true,
+          order: 0,
+          videoSearchQuery: 'how to play E minor chord',
+        },
+      ]);
+      youtubeService.findBestVideo.mockResolvedValue({ videoId: 'abc123', title: 'A video' });
 
+      const result = await service.getChapterChecklist('device-1', 'plan-1', 'chapter-1');
+
+      expect(result.generating).toBe(true);
+      expect(result.plan).toBe(plan);
+      // The response comes back before the background work has persisted anything.
+      expect(chapter.checklistItems).toEqual([]);
+    });
+
+    it('eventually persists the generated checklist in the background', async () => {
+      const chapter = {
+        _id: 'chapter-1',
+        title: 'Basics',
+        description: 'Learn the basics',
+        checklistItems: [],
+      };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        hobby: 'Guitar',
+        level: HobbyLevel.BEGINNER,
+        chapters: withChapterLookup([chapter]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
       groqService.generateChecklistItems.mockResolvedValue([
         {
           title: 'E minor chord',
@@ -244,10 +312,20 @@ describe('LearningPlansService', () => {
           order: 1,
           textContent: 'A chord is...',
         },
+        {
+          title: 'Sitting posture',
+          description: 'How to sit while playing',
+          modality: 'text',
+          required: true,
+          order: 2,
+          steps: ['Sit with a straight back.', 'Rest the guitar on your leg.'],
+        },
       ]);
       youtubeService.findBestVideo.mockResolvedValue({ videoId: 'abc123', title: 'A video' });
 
-      const result = await service.getChapterChecklist('device-1', 'plan-1', 'chapter-1');
+      await service.getChapterChecklist('device-1', 'plan-1', 'chapter-1');
+
+      await vi.waitFor(() => expect(chapter.checklistItems.length).toBe(3));
 
       expect(groqService.generateChecklistItems).toHaveBeenCalledWith({
         hobby: 'Guitar',
@@ -269,11 +347,59 @@ describe('LearningPlansService', () => {
           textContent: 'A chord is...',
           youtubeVideoId: undefined,
         }),
+        expect.objectContaining({
+          title: 'Sitting posture',
+          modality: ContentModality.TEXT,
+          steps: ['Sit with a straight back.', 'Rest the guitar on your leg.'],
+          youtubeVideoId: undefined,
+        }),
       ]);
-      expect(result).toBe(plan);
+      expect(plan.save).toHaveBeenCalled();
     });
 
-    it('returns existing checklist items without regenerating', async () => {
+    it('does not kick off a second generation while one is already in progress', async () => {
+      const chapter = {
+        _id: 'chapter-1',
+        title: 'Basics',
+        description: 'Learn the basics',
+        checklistItems: [],
+      };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        hobby: 'Guitar',
+        level: HobbyLevel.BEGINNER,
+        chapters: withChapterLookup([chapter]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+      groqService.generateChecklistItems.mockResolvedValue([
+        {
+          title: 'E minor chord',
+          description: 'Learn the shape',
+          modality: 'text',
+          required: true,
+          order: 0,
+          textContent: 'Some content',
+        },
+      ]);
+
+      const [first, second] = await Promise.all([
+        service.getChapterChecklist('device-1', 'plan-1', 'chapter-1'),
+        service.getChapterChecklist('device-1', 'plan-1', 'chapter-1'),
+      ]);
+
+      expect(first.generating).toBe(true);
+      expect(second.generating).toBe(true);
+
+      await vi.waitFor(() => expect(chapter.checklistItems.length).toBe(1));
+
+      expect(groqService.generateChecklistItems).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns generating:false immediately when checklist items already exist', async () => {
       const chapter = {
         _id: 'chapter-1',
         title: 'Basics',
@@ -292,9 +418,10 @@ describe('LearningPlansService', () => {
 
       const result = await service.getChapterChecklist('device-1', 'plan-1', 'chapter-1');
 
+      expect(result.generating).toBe(false);
+      expect(result.plan).toBe(plan);
       expect(groqService.generateChecklistItems).not.toHaveBeenCalled();
       expect(plan.save).not.toHaveBeenCalled();
-      expect(result).toBe(plan);
     });
 
     it('throws NotFoundException when the chapter does not exist', async () => {
@@ -307,6 +434,166 @@ describe('LearningPlansService', () => {
 
       await expect(
         service.getChapterChecklist('device-1', 'plan-1', 'missing-chapter'),
+      ).rejects.toThrow('not found');
+    });
+  });
+
+  describe('toggleChecklistItem', () => {
+    it('marks a not-started item as mastered', async () => {
+      const item = { _id: 'item-1', title: 'Chord theory', status: ChecklistItemStatus.NOT_STARTED };
+      const chapter = {
+        _id: 'chapter-1',
+        title: 'Basics',
+        checklistItems: withItemLookup([item]),
+      };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        chapters: withChapterLookup([chapter]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      const result = await service.toggleChecklistItem(
+        'device-1',
+        'plan-1',
+        'chapter-1',
+        'item-1',
+      );
+
+      expect(item.status).toBe(ChecklistItemStatus.MASTERED);
+      expect(plan.save).toHaveBeenCalled();
+      expect(result).toBe(plan);
+    });
+
+    it('toggles a mastered item back to not-started', async () => {
+      const item = { _id: 'item-1', title: 'Chord theory', status: ChecklistItemStatus.MASTERED };
+      const chapter = {
+        _id: 'chapter-1',
+        title: 'Basics',
+        checklistItems: withItemLookup([item]),
+      };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        chapters: withChapterLookup([chapter]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      await service.toggleChecklistItem('device-1', 'plan-1', 'chapter-1', 'item-1');
+
+      expect(item.status).toBe(ChecklistItemStatus.NOT_STARTED);
+    });
+
+    it('throws NotFoundException when the chapter does not exist', async () => {
+      const plan = {
+        id: 'plan-1',
+        userId,
+        chapters: withChapterLookup([]),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      await expect(
+        service.toggleChecklistItem('device-1', 'plan-1', 'missing-chapter', 'item-1'),
+      ).rejects.toThrow('not found');
+    });
+
+    it('throws NotFoundException when the checklist item does not exist', async () => {
+      const chapter = {
+        _id: 'chapter-1',
+        title: 'Basics',
+        checklistItems: withItemLookup([]),
+      };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        chapters: withChapterLookup([chapter]),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      await expect(
+        service.toggleChecklistItem('device-1', 'plan-1', 'chapter-1', 'missing-item'),
+      ).rejects.toThrow('not found');
+    });
+  });
+
+  describe('completeChapter', () => {
+    it('marks the chapter completed and unlocks the next one', async () => {
+      const chapter1 = { _id: 'chapter-1', title: 'Basics', status: ChapterStatus.CURRENT };
+      const chapter2 = { _id: 'chapter-2', title: 'Chords', status: ChapterStatus.LOCKED };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        status: LearningPlanStatus.ACTIVE,
+        chapters: withChapterLookup([chapter1, chapter2]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      const result = await service.completeChapter('device-1', 'plan-1', 'chapter-1');
+
+      expect(chapter1.status).toBe(ChapterStatus.COMPLETED);
+      expect(chapter2.status).toBe(ChapterStatus.CURRENT);
+      expect(plan.status).toBe(LearningPlanStatus.ACTIVE);
+      expect(result).toBe(plan);
+    });
+
+    it('completes the plan when the last chapter is finished', async () => {
+      const chapter1 = { _id: 'chapter-1', title: 'Basics', status: ChapterStatus.CURRENT };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        status: LearningPlanStatus.ACTIVE,
+        chapters: withChapterLookup([chapter1]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      const result = await service.completeChapter('device-1', 'plan-1', 'chapter-1');
+
+      expect(chapter1.status).toBe(ChapterStatus.COMPLETED);
+      expect(plan.status).toBe(LearningPlanStatus.COMPLETED);
+      expect(result).toBe(plan);
+    });
+
+    it('does not relock an already-unlocked next chapter', async () => {
+      const chapter1 = { _id: 'chapter-1', title: 'Basics', status: ChapterStatus.CURRENT };
+      const chapter2 = { _id: 'chapter-2', title: 'Chords', status: ChapterStatus.COMPLETED };
+      const plan = {
+        id: 'plan-1',
+        userId,
+        status: LearningPlanStatus.ACTIVE,
+        chapters: withChapterLookup([chapter1, chapter2]),
+        save: vi.fn().mockImplementation(function (this: unknown) {
+          return Promise.resolve(this);
+        }),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      await service.completeChapter('device-1', 'plan-1', 'chapter-1');
+
+      expect(chapter2.status).toBe(ChapterStatus.COMPLETED);
+    });
+
+    it('throws NotFoundException when the chapter does not exist', async () => {
+      const plan = {
+        id: 'plan-1',
+        userId,
+        chapters: withChapterLookup([]),
+      };
+      planModel.findOne.mockReturnValue({ exec: () => Promise.resolve(plan) });
+
+      await expect(
+        service.completeChapter('device-1', 'plan-1', 'missing-chapter'),
       ).rejects.toThrow('not found');
     });
   });

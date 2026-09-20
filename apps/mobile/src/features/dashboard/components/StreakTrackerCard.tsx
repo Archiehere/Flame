@@ -1,72 +1,54 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, shadow, spacing } from '../../../theme/theme';
-import { DayTile, DayTileState } from './DayTile';
-import { PillButton } from './PillButton';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, fonts, radii, shadow, spacing } from '../../../theme/theme';
+import { buildStreakDays } from '../weekDays';
+import { DayTile } from './DayTile';
 
 interface StreakTrackerCardProps {
-  onPressReward: () => void;
+  currentStreak: number;
 }
 
-// Static preview until real streak history is wired up.
-const PREVIEW_DAYS: { label: string; state: DayTileState }[] = [
-  { label: 'Miss', state: 'miss' },
-  { label: 'Done', state: 'done' },
-  { label: 'Streak', state: 'streak' },
-  { label: 'Pending', state: 'pending' },
-];
+export function StreakTrackerCard({ currentStreak }: StreakTrackerCardProps): React.JSX.Element {
+  const router = useRouter();
+  const recentDays = buildStreakDays(3, currentStreak);
 
-export function StreakTrackerCard({ onPressReward }: StreakTrackerCardProps): React.JSX.Element {
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Track your streak{'\n'}and see each day</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Streak options"
-          onPress={() => Alert.alert('Coming soon', 'Streak details are on the way!')}
-          hitSlop={8}
-        >
-          <Text style={styles.menuDots}>•••</Text>
-        </Pressable>
-      </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="View your streak"
+      onPress={() => router.push('/streak')}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    >
+      <Text style={styles.headerText}>Track your streak and{'\n'}see each day</Text>
 
       <View style={styles.tiles}>
-        {PREVIEW_DAYS.map((day) => (
-          <DayTile key={day.label} label={day.label} state={day.state} />
+        {recentDays.map((day, index) => (
+          <DayTile key={index} dayLetter={day.dayLetter} state={day.state} />
         ))}
       </View>
-
-      <PillButton label="Get a reward" onPress={onPressReward} />
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardDark,
-    borderRadius: radii.md + 4,
+    borderRadius: radii.md + 2,
     padding: spacing.lg,
     gap: spacing.lg,
     ...shadow,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  cardPressed: {
+    opacity: 0.9,
   },
   headerText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 17,
+    fontFamily: fonts.medium,
     color: colors.textOnPrimary,
-    lineHeight: 20,
-    flexShrink: 1,
-  },
-  menuDots: {
-    color: colors.textOnPrimary,
-    fontSize: 16,
-    fontWeight: '700',
+    lineHeight: 22,
   },
   tiles: {
+    justifyContent: 'center',
     flexDirection: 'row',
     gap: spacing.sm,
   },

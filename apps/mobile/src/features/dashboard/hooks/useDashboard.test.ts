@@ -1,13 +1,23 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { getActiveLearningPlans, removeLearningPlan } from '../../../services/learningPlanApi';
+import {
+  approveLearningPlan,
+  createLearningPlan,
+  getActiveLearningPlans,
+  removeLearningPlan,
+} from '../../../services/learningPlanApi';
 import { getCurrentUser } from '../../../services/userApi';
 import { useDashboard } from './useDashboard';
 
 jest.mock('../../../services/learningPlanApi');
 jest.mock('../../../services/userApi');
+jest.mock('expo-router', () => ({
+  useFocusEffect: (effect: () => void) => require('react').useEffect(effect, [effect]),
+}));
 
 const mockGetActiveLearningPlans = getActiveLearningPlans as jest.Mock;
 const mockRemoveLearningPlan = removeLearningPlan as jest.Mock;
+const mockCreateLearningPlan = createLearningPlan as jest.Mock;
+const mockApproveLearningPlan = approveLearningPlan as jest.Mock;
 const mockGetCurrentUser = getCurrentUser as jest.Mock;
 
 const plan = {
@@ -119,5 +129,27 @@ describe('useDashboard', () => {
 
     expect(mockRemoveLearningPlan).toHaveBeenCalledWith('plan-1');
     expect(result.current.courses.map((c) => c.planId)).toEqual(['plan-2']);
+  });
+
+  it('creates and approves a featured course, then reloads the course list', async () => {
+    mockGetCurrentUser.mockResolvedValue({ name: 'Ada', currentStreak: 0 });
+    mockGetActiveLearningPlans.mockResolvedValueOnce([]).mockResolvedValueOnce([plan]);
+    mockCreateLearningPlan.mockResolvedValue({ _id: 'plan-1' });
+    mockApproveLearningPlan.mockResolvedValue({ ...plan, status: 'active' });
+
+    const { result } = renderHook(() => useDashboard());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.courses).toEqual([]);
+
+    await act(async () => {
+      await result.current.addFeaturedCourse('Guitar', 'beginner');
+    });
+
+    expect(mockCreateLearningPlan).toHaveBeenCalledWith(
+      expect.objectContaining({ hobby: 'Guitar', level: 'beginner' }),
+    );
+    expect(mockApproveLearningPlan).toHaveBeenCalledWith('plan-1');
+    expect(result.current.courses.map((c) => c.planId)).toEqual(['plan-1']);
   });
 });

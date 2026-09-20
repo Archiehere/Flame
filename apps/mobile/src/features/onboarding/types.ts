@@ -19,6 +19,7 @@ export interface ChecklistItem {
   order: number;
   status: ChecklistItemStatus;
   textContent?: string;
+  steps?: string[];
   youtubeVideoId?: string;
 }
 
