@@ -66,3 +66,7 @@ pnpm mobile:test    # jest
 pnpm test   # run every workspace's tests
 pnpm lint   # run every workspace's lint/typecheck
 ```
+
+## Credits
+
+Mobile UI design inspired by [E-Learning Mobile App](https://dribbble.com/shots/25152458-E-Learning-Mobile-App) on Dribbble.
