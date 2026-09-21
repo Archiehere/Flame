@@ -61,7 +61,7 @@ export function FeaturedCoursePreview({ course, isAdded, isAdding, isAtLimit, on
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(35, 31, 61, 0.4)' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(35, 31, 61, 0.2)' },
   sheet: { maxHeight: '85%', backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xl },
   eyebrow: { fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 1.5, color: colors.textSecondary },

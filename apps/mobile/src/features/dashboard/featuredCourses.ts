@@ -7,13 +7,6 @@ export interface FeaturedCourse {
   description: string;
 }
 
-/**
- * A curated set of hobbies picked for how well they map onto Flame's
- * chapter + checklist structure: each has a clear skill progression, a mix
- * of text and demonstrable/video-friendly techniques, and a realistic
- * beginner starting point. Levels are set to whatever makes the most common
- * first-time learner successful for that hobby.
- */
 export const FEATURED_COURSES: FeaturedCourse[] = [
   {
     hobby: 'Guitar',
@@ -65,13 +58,7 @@ export const FEATURED_COURSES: FeaturedCourse[] = [
   },
 ];
 
-/**
- * Matches two hobby strings so a course already in "Your courses" hides its
- * "+ Add" button in the featured list. Exact (case/whitespace-insensitive)
- * match only — substring/fuzzy matching caused false positives between
- * distinct hobbies, so a chat-created course only counts as the same hobby
- * when its name matches a featured course's name exactly.
- */
+
 export function hobbiesMatch(a: string, b: string): boolean {
   const normalize = (s: string) => s.trim().toLowerCase();
   return normalize(a) === normalize(b);
