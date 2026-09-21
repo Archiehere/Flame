@@ -3,15 +3,17 @@ import { colors, radii, spacing } from '../../../theme/theme';
 
 interface AddCourseCardProps {
   onPress: () => void;
+  isAtLimit?: boolean;
 }
 
-export function AddCourseCard({ onPress }: AddCourseCardProps): React.JSX.Element {
+export function AddCourseCard({ onPress, isAtLimit = false }: AddCourseCardProps): React.JSX.Element {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Start a new course"
+      accessibilityHint={isAtLimit ? "Maximum 5 courses allowed at a time." : undefined}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed, isAtLimit && styles.limitedCard]}
     >
       <View style={styles.plusCircle}>
         <Text style={styles.plusText}>+</Text>
@@ -33,6 +35,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     minHeight: 150,
+  },
+  limitedCard: {
+    opacity: 0.4,
   },
   pressed: {
     backgroundColor: colors.userBubble,

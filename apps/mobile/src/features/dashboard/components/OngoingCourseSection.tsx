@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, spacing } from '../../../theme/theme';
 import { CourseSummary } from '../hooks/useDashboard';
+import { MAX_COURSES, showCourseLimitAlert } from '../courseLimit';
 import { AddCourseCard } from './AddCourseCard';
 import { CourseCard } from './CourseCard';
 
@@ -49,7 +50,16 @@ export function OngoingCourseSection({
             onRemove={() => confirmRemove(course)}
           />
         ))}
-        <AddCourseCard onPress={() => router.push('/new-course')} />
+        <AddCourseCard
+          isAtLimit={courses.length >= MAX_COURSES}
+          onPress={() => {
+            if (courses.length >= MAX_COURSES) {
+              showCourseLimitAlert();
+              return;
+            }
+            router.push('/new-course');
+          }}
+        />
       </ScrollView>
     </View>
   );

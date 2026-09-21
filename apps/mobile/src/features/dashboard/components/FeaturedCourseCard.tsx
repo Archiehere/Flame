@@ -8,7 +8,9 @@ interface FeaturedCourseCardProps {
   description: string;
   isAdded: boolean;
   isAdding: boolean;
+  isAtLimit?: boolean;
   onAdd: () => void;
+  onPreview: () => void;
 }
 
 export function FeaturedCourseCard({
@@ -17,17 +19,22 @@ export function FeaturedCourseCard({
   description,
   isAdded,
   isAdding,
+  isAtLimit = false,
   onAdd,
+  onPreview,
 }: FeaturedCourseCardProps): React.JSX.Element {
   return (
     <View style={styles.card}>
-      <Text style={styles.icon}>{getHobbyIcon(hobby)}</Text>
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
-      <Text style={styles.description} numberOfLines={3}>
-        {description}
-      </Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Preview ${title}`} onPress={onPreview}>
+        <Text style={styles.icon}>{getHobbyIcon(hobby)}</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.description} numberOfLines={3}>
+          {description}
+        </Text>
+
+      </Pressable>
 
       {isAdded ? (
         <View style={styles.addedBadge}>
@@ -37,12 +44,14 @@ export function FeaturedCourseCard({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Add ${title} to your courses`}
+          accessibilityHint={isAtLimit ? "Maximum 5 courses allowed at a time." : undefined}
           disabled={isAdding}
           onPress={onAdd}
           style={({ pressed }) => [
             styles.addButton,
             pressed && styles.addButtonPressed,
             isAdding && styles.addButtonDisabled,
+            isAtLimit && styles.addButtonLimited,
           ]}
         >
           {isAdding ? (
@@ -93,6 +102,9 @@ const styles = StyleSheet.create({
   },
   addButtonPressed: {
     opacity: 0.85,
+  },
+  addButtonLimited: {
+    opacity: 0.4,
   },
   addButtonDisabled: {
     opacity: 0.6,
