@@ -52,8 +52,6 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
         'Content-Type': 'application/json',
         'x-device-id': deviceId,
         'x-local-date': getLocalDateKey(),
-        // Skips ngrok's free-tier HTML interstitial warning page, which
-        // would otherwise be returned instead of JSON for tunneled requests.
         'ngrok-skip-browser-warning': 'true',
         ...init.headers,
       },
