@@ -7,6 +7,10 @@ import {
 import { ChapterChecklistScreen } from './ChapterChecklistScreen';
 
 jest.mock('../../../services/learningPlanApi');
+jest.mock('react-native-webview', () => ({
+  __esModule: true,
+  default: require('react-native').View,
+}));
 
 const mockGetChapterChecklist = getChapterChecklist as jest.Mock;
 const mockCompleteChapter = completeChapter as jest.Mock;
@@ -115,7 +119,7 @@ describe('ChapterChecklistScreen', () => {
     render(<ChapterChecklistScreen planId="plan-1" chapterId="chapter-1" />);
 
     const checkbox = await screen.findByLabelText('Mark as done');
-    fireEvent.press(checkbox);
+    fireEvent.press(checkbox, { stopPropagation: jest.fn() });
 
     expect(mockToggleChecklistItem).toHaveBeenCalledWith('plan-1', 'chapter-1', 'item-1');
     expect(await screen.findByLabelText('Mark as not done')).toBeTruthy();

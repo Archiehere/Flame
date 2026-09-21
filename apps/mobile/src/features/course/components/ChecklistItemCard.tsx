@@ -1,17 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoFrameIcon } from '../../../components/VideoFrameIcon';
 import { colors, radii, shadow, spacing } from '../../../theme/theme';
 import { ChecklistItem } from '../../onboarding/types';
+import { YouTubePlayer } from './YouTubePlayer';
 import { StepChecklist } from './StepChecklist';
 
 interface ChecklistItemCardProps {
   item: ChecklistItem;
   onToggle: () => void;
-}
-
-function openYoutubeVideo(videoId: string): void {
-  Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`);
 }
 
 export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): React.JSX.Element {
@@ -33,18 +30,20 @@ export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): R
   });
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => setExpanded((prev) => !prev)}
-      style={styles.card}
-    >
-      <View style={styles.headerRow}>
+    <View style={styles.card}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={item.title}
+        accessibilityState={{ expanded }}
+        onPress={() => setExpanded((prev) => !prev)}
+        style={styles.headerRow}
+      >
         <View style={styles.leadingColumn}>
           <Pressable
             accessibilityRole="checkbox"
             accessibilityLabel={isMastered ? 'Mark as not done' : 'Mark as done'}
             accessibilityState={{ checked: isMastered }}
-            onPress={onToggle}
+            onPress={(event) => { event.stopPropagation(); onToggle(); }}
             hitSlop={8}
             style={[styles.checkbox, isMastered && styles.checkboxDone]}
           >
@@ -68,28 +67,12 @@ export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): R
         >
           ›
         </Animated.Text>
-      </View>
+      </Pressable>
 
       {expanded && (
         <View style={styles.content}>
           {item.youtubeVideoId && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Watch video on YouTube"
-              onPress={() => openYoutubeVideo(item.youtubeVideoId ?? '')}
-              style={styles.videoContainer}
-            >
-              <Image
-                source={{ uri: `https://img.youtube.com/vi/${item.youtubeVideoId}/hqdefault.jpg` }}
-                style={styles.videoThumbnail}
-              />
-              <View style={styles.playOverlay}>
-                <Text style={styles.playIcon}>▶</Text>
-              </View>
-              <View style={styles.watchBadge}>
-                <Text style={styles.watchBadgeText}>Watch on YouTube</Text>
-              </View>
-            </Pressable>
+            <YouTubePlayer key={item.youtubeVideoId} videoId={item.youtubeVideoId} />
           )}
           {item.steps && item.steps.length > 0 ? (
             <StepChecklist steps={item.steps} />
@@ -98,7 +81,7 @@ export function ChecklistItemCard({ item, onToggle }: ChecklistItemCardProps): R
           )}
         </View>
       )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -177,44 +160,6 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.md,
-  },
-  videoContainer: {
-    aspectRatio: 16 / 9,
-    borderRadius: radii.sm,
-    overflow: 'hidden',
-    backgroundColor: colors.border,
-  },
-  videoThumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  playOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-  },
-  playIcon: {
-    fontSize: 32,
-    color: colors.surface,
-  },
-  watchBadge: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    right: spacing.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    borderRadius: radii.pill,
-    paddingVertical: 4,
-    paddingHorizontal: spacing.sm,
-  },
-  watchBadgeText: {
-    color: colors.surface,
-    fontSize: 11,
-    fontWeight: '700',
   },
   textContent: {
     fontSize: 14,
